@@ -1,3 +1,6 @@
+use crate::graphical_core::{buffers::allocate_and_fill_buffer, host_visible_coherent, vulkan_object::VulkanApplicationData};
+use vulkan_rust::{vk, Device, Instance};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum BlockType {
@@ -12,10 +15,6 @@ pub enum BlockType {
 }
 
 impl BlockType {
-    pub fn is_opaque(self) -> bool {
-        BLOCKS[self as usize].opaque
-    }
-
     pub fn is_solid(self) -> bool {
         BLOCKS[self as usize].solid
     }
@@ -31,6 +30,22 @@ impl BlockType {
         }
         mask
     }
+}
+
+fn upload_per_block_opacity_table(device: &Device, instance: &Instance, data: &mut VulkanApplicationData) -> anyhow::Error<()> {
+    // Create derived array of blockproperties(derived because needs to have strict byte positions)
+    // where each column? is blockproperties of one blocktype. So basically just blockproperties as a single source of truth also on GPU side
+    let (staging_buffer, staging_buffer_memory) = unsafe {
+        allocate_and_fill_buffer(
+            data_slice,
+            buffer_size_in_bytes,
+            vk::BufferUsageFlags::STORAGE_BUFFER,
+            device,
+            instance,
+            data,
+            host_visible_coherent(),
+        )?
+    };
 }
 
 struct BlockProperties {
