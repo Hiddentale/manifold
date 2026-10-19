@@ -41,6 +41,6 @@ fn subresource_range_mip(aspect: vulkan_rust::vk::ImageAspectFlags, base_mip: u3
         .layer_count(1)
 }
 
-fn host_visible_coherent() -> vulkan_rust::vk::MemoryPropertyFlags {
+pub fn host_visible_coherent() -> vulkan_rust::vk::MemoryPropertyFlags {
     vulkan_rust::vk::MemoryPropertyFlags::HOST_VISIBLE | vulkan_rust::vk::MemoryPropertyFlags::HOST_COHERENT
 }
