@@ -1,14 +1,14 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum BlockType {
-    Air,
-    Grass,
-    Dirt,
-    Stone,
-    Water,
-    Sand,
-    Snow,
-    Gravel,
+    Air = 0,
+    Grass = 1,
+    Dirt = 2,
+    Stone = 3,
+    Water = 4,
+    Sand = 5,
+    Snow = 6,
+    Gravel = 7,
 }
 
 impl BlockType {
@@ -28,5 +28,32 @@ impl BlockType {
             }
         }
         mask
+    }
+}
+
+pub struct BlockProperties {
+    opaque: bool,
+    solid: bool,
+    hardness: u32,
+    light_emission: u32,
+    falls: u32,
+    top_texture: u32,
+    side_texture: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn block_ids_match_format() {
+        assert_eq!(BlockType::Air as u8, 0);
+        assert_eq!(BlockType::Grass as u8, 1);
+        assert_eq!(BlockType::Dirt as u8, 2);
+        assert_eq!(BlockType::Stone as u8, 3);
+        assert_eq!(BlockType::Water as u8, 4);
+        assert_eq!(BlockType::Sand as u8, 5);
+        assert_eq!(BlockType::Snow as u8, 6);
+        assert_eq!(BlockType::Gravel as u8, 7);
     }
 }
