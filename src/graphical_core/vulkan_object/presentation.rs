@@ -18,7 +18,7 @@ impl VulkanApplication {
     /// Waits for the current frame's fence, then acquires the next swapchain image.
     /// Returns `None` if the swapchain was out of date and had to be recreated.
     pub(super) unsafe fn acquire_next_image(&mut self, window: &Window) -> anyhow::Result<Option<usize>> {
-        let data = &self.vulkan_application_data;
+        let data = &self.data;
         self.device.wait_for_fences(&[data.in_flight_fences[self.frame]], true, u64::MAX)?;
 
         let result = self
@@ -33,17 +33,16 @@ impl VulkanApplication {
             Err(e) => return Err(anyhow!("{e:?}")),
         };
 
-        if !self.vulkan_application_data.images_in_flight[image_index].is_null() {
-            self.device
-                .wait_for_fences(&[self.vulkan_application_data.images_in_flight[image_index]], true, u64::MAX)?;
+        if !self.data.images_in_flight[image_index].is_null() {
+            self.device.wait_for_fences(&[self.data.images_in_flight[image_index]], true, u64::MAX)?;
         }
-        self.vulkan_application_data.images_in_flight[image_index] = self.vulkan_application_data.in_flight_fences[self.frame];
+        self.data.images_in_flight[image_index] = self.data.in_flight_fences[self.frame];
 
         Ok(Some(image_index))
     }
 
     pub(super) unsafe fn submit_command_buffer(&self, image_index: usize) -> anyhow::Result<()> {
-        let data = &self.vulkan_application_data;
+        let data = &self.data;
         let wait_semaphores = &[data.image_available_semaphores[self.frame]];
         let wait_stages = &[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let command_buffers = &[data.command_buffers[image_index]];
@@ -61,7 +60,7 @@ impl VulkanApplication {
     }
 
     pub(super) unsafe fn present_frame(&mut self, image_index: usize, window: &Window) -> anyhow::Result<()> {
-        let data = &self.vulkan_application_data;
+        let data = &self.data;
         let signal_semaphores = &[data.render_finished_semaphores[image_index]];
         let swapchains = &[data.swapchain];
         let image_indices = &[image_index as u32];
@@ -89,22 +88,20 @@ impl VulkanApplication {
         self.device.device_wait_idle()?;
         compute_cull::destroy_depth_pyramid_pipeline(&self.device, &self.depth_pyramid_pipeline);
         self.destroy_swapchain();
-        create_swapchain(user_window, &self.vulkan_instance, &self.device, &mut self.vulkan_application_data)?;
-        create_swapchain_image_views(&self.device, &mut self.vulkan_application_data)?;
-        create_depth_image(&self.device, &self.vulkan_instance, &mut self.vulkan_application_data)?;
-        create_depth_pyramid(&self.device, &self.vulkan_instance, &mut self.vulkan_application_data)?;
-        self.depth_pyramid_pipeline = compute_cull::create_depth_pyramid_pipeline(&self.device, &self.vulkan_application_data)?;
+        create_swapchain(user_window, &self.vulkan_instance, &self.device, &mut self.data)?;
+        create_swapchain_image_views(&self.device, &mut self.data)?;
+        create_depth_image(&self.device, &self.vulkan_instance, &mut self.data)?;
+        create_depth_pyramid(&self.device, &self.vulkan_instance, &mut self.data)?;
+        self.depth_pyramid_pipeline = compute_cull::create_depth_pyramid_pipeline(&self.device, &self.data)?;
         self.depth_pyramid_needs_init = true;
-        create_render_pass(&self.vulkan_instance, &self.device, &mut self.vulkan_application_data)?;
-        create_sky_pipeline(&self.device, &mut self.vulkan_application_data)?;
-        create_frame_buffers(&self.device, &mut self.vulkan_application_data)?;
-        allocate_command_buffers(&self.device, &mut self.vulkan_application_data)?;
-        self.vulkan_application_data
-            .images_in_flight
-            .resize(self.vulkan_application_data.swapchain_images.len(), vk::Fence::null());
+        create_render_pass(&self.vulkan_instance, &self.device, &mut self.data)?;
+        create_sky_pipeline(&self.device, &mut self.data)?;
+        create_frame_buffers(&self.device, &mut self.data)?;
+        allocate_command_buffers(&self.device, &mut self.data)?;
+        self.data.images_in_flight.resize(self.data.swapchain_images.len(), vk::Fence::null());
         // Re-bind depth pyramid descriptors for world pipelines (handles were invalidated)
         if let Some(wr) = &self.world_resources {
-            wr.cull_compact_pipeline.update_depth_pyramid(&self.device, &self.vulkan_application_data);
+            wr.cull_compact_pipeline.update_depth_pyramid(&self.device, &self.data);
         }
         Ok(())
     }
@@ -114,23 +111,21 @@ impl VulkanApplication {
     /// # Safety
     /// Calls unsafe Vulkan destruction APIs. The GPU must be idle before calling.
     pub unsafe fn destroy_swapchain(&mut self) {
-        self.vulkan_application_data
+        self.data
             .framebuffers
             .iter()
             .for_each(|framebuffer| self.device.destroy_framebuffer(*framebuffer, None));
-        self.device
-            .free_command_buffers(self.vulkan_application_data.command_pool, &self.vulkan_application_data.command_buffers);
-        self.device.destroy_pipeline(self.vulkan_application_data.sky_pipeline, None);
-        self.device
-            .destroy_pipeline_layout(self.vulkan_application_data.sky_pipeline_layout, None);
-        self.device.destroy_render_pass(self.vulkan_application_data.render_pass, None);
-        self.device.destroy_render_pass(self.vulkan_application_data.render_pass_load, None);
-        destroy_depth_pyramid(&self.device, &mut self.vulkan_application_data);
-        destroy_depth_image(&self.device, &mut self.vulkan_application_data);
-        self.vulkan_application_data
+        self.device.free_command_buffers(self.data.command_pool, &self.data.command_buffers);
+        self.device.destroy_pipeline(self.data.sky_pipeline, None);
+        self.device.destroy_pipeline_layout(self.data.sky_pipeline_layout, None);
+        self.device.destroy_render_pass(self.data.render_pass, None);
+        self.device.destroy_render_pass(self.data.render_pass_load, None);
+        destroy_depth_pyramid(&self.device, &mut self.data);
+        destroy_depth_image(&self.device, &mut self.data);
+        self.data
             .swapchain_image_views
             .iter()
             .for_each(|image_view| self.device.destroy_image_view(*image_view, None));
-        self.device.destroy_swapchain_khr(self.vulkan_application_data.swapchain, None);
+        self.device.destroy_swapchain_khr(self.data.swapchain, None);
     }
 }

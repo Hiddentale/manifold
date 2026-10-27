@@ -1,7 +1,3 @@
-use crate::graphical_core::{buffers::allocate_and_fill_buffer, host_visible_coherent, vulkan_object::VulkanApplicationData};
-use lz4_flex::block;
-use vulkan_rust::{vk, Device, Instance};
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum BlockType {
@@ -19,54 +15,22 @@ impl BlockType {
     pub fn is_solid(self) -> bool {
         BLOCKS[self as usize].solid
     }
+}
 
-    /// Bitmask where bit `i` is set if block type `i` is opaque.
-    /// Used by shaders for GPU-side face culling.
-    pub fn opaque_mask() -> u32 {
-        let mut mask = 0u32;
-        for i in 0..BLOCKS.len() {
-            if BLOCKS[i].opaque {
-                mask |= 1 << i;
-            }
-        }
-        mask
+pub fn construct_gpu_block_properties(block_properties: &BlockProperties) -> GpuBlockProperties {
+    GpuBlockProperties {
+        opaque: block_properties.opaque as u32,
+        solid: block_properties.solid as u32,
+        hardness: block_properties.hardness,
+        light_emission: block_properties.light_emission,
+        can_fall: block_properties.can_fall as u32,
+        top_texture: block_properties.top_texture,
+        side_texture: block_properties.side_texture,
     }
 }
 
-fn upload_per_block_opacity_table(device: &Device, instance: &Instance, data: &mut VulkanApplicationData) -> anyhow::Result<()> {
-    let buffer_size_in_bytes = (size_of::<BlockPropertiesGPUcompatible>() * BLOCKS.len()) as u64;
-    let data_slice: [BlockPropertiesGPUcompatible; BLOCKS.len()] = std::array::from_fn(fill_data_slice);
-    let (block_storage_buffer, block_storage_memory) = unsafe {
-        allocate_and_fill_buffer(
-            &data_slice,
-            buffer_size_in_bytes,
-            vk::BufferUsageFlags::STORAGE_BUFFER,
-            device,
-            instance,
-            data,
-            host_visible_coherent(),
-        )?
-    };
-    data.block_storage_buffer = block_storage_buffer;
-    data.block_storage_memory = block_storage_memory;
-    Ok(())
-}
-
-fn fill_data_slice(i: usize) -> BlockPropertiesGPUcompatible {
-    let gpu_block_properties = BlockPropertiesGPUcompatible {
-        opaque: BLOCKS[i].opaque as u32,
-        solid: BLOCKS[i].solid as u32,
-        hardness: BLOCKS[i].hardness,
-        light_emission: BLOCKS[i].light_emission,
-        can_fall: BLOCKS[i].can_fall as u32,
-        top_texture: BLOCKS[i].top_texture,
-        side_texture: BLOCKS[i].side_texture,
-    };
-    gpu_block_properties
-}
-
 #[repr(C)]
-struct BlockPropertiesGPUcompatible {
+pub struct GpuBlockProperties {
     opaque: u32,
     solid: u32,
     hardness: u32,
@@ -76,7 +40,12 @@ struct BlockPropertiesGPUcompatible {
     side_texture: u32,
 }
 
-struct BlockProperties {
+const _: () = assert!(
+    size_of::<GpuBlockProperties>() == 28,
+    "GPU Block Properties layout has changed, update the matching struct in the shader file"
+);
+
+pub struct BlockProperties {
     block_type: BlockType,
     opaque: bool,
     solid: bool,
@@ -87,7 +56,7 @@ struct BlockProperties {
     side_texture: u32,
 }
 
-const BLOCKS: [BlockProperties; 8] = [
+pub const BLOCKS: [BlockProperties; 8] = [
     BlockProperties {
         block_type: BlockType::Air,
         opaque: false,
@@ -170,6 +139,17 @@ const BLOCKS: [BlockProperties; 8] = [
     },
 ];
 
+const _: () = {
+    let mut i: usize = 0;
+    while i < BLOCKS.len() {
+        assert!(
+            BLOCKS[i].block_type as usize == i,
+            "BLOCKS has changed, Blocktype enum values don't match BLOCKS index positions anymore"
+        );
+        i += 1;
+    }
+};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,9 +166,20 @@ mod tests {
         assert_eq!(BlockType::Gravel as u8, 7);
     }
 
-    // Increase bitmask space if number of blocktypes exceeds this number.
     #[test]
-    fn total_blocks_is_less_than_33() {
-        assert!(BLOCKS.len() < 33);
+    fn conversion_copies_true_to_1_and_false_to_0() {
+        let block_properties = BlockProperties {
+            block_type: BlockType::Air,
+            opaque: true,
+            solid: false,
+            hardness: 0,
+            light_emission: 0,
+            can_fall: false,
+            top_texture: 0,
+            side_texture: 0,
+        };
+        let gpu_block_properties = construct_gpu_block_properties(&block_properties);
+        assert_eq!(gpu_block_properties.opaque, 1);
+        assert_eq!(gpu_block_properties.solid, 0);
     }
 }

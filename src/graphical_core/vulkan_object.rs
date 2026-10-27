@@ -74,7 +74,7 @@ pub struct WorldResources {
 pub struct VulkanApplication {
     _vulkan_entry_point: Entry,
     vulkan_instance: Instance,
-    vulkan_application_data: VulkanApplicationData,
+    data: VulkanApplicationData,
     device: Device,
     frame: usize,
     pub(crate) resized: bool,
@@ -99,6 +99,6 @@ impl VulkanApplication {
     }
 
     pub fn swapchain_extent(&self) -> vk::Extent2D {
-        self.vulkan_application_data.swapchain_extent
+        self.data.swapchain_extent
     }
 }
