@@ -48,6 +48,8 @@ pub struct VulkanApplicationData {
     pub depth_pyramid_mip_count: u32,
     pub sky_pipeline: vk::Pipeline,
     pub sky_pipeline_layout: vk::PipelineLayout,
+    pub block_storage_buffer: vk::Buffer,
+    pub block_storage_memory: vk::DeviceMemory,
 }
 
 /// World generates and streams terrain out to this distance around the player.

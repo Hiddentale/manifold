@@ -1,4 +1,5 @@
 use crate::graphical_core::{buffers::allocate_and_fill_buffer, host_visible_coherent, vulkan_object::VulkanApplicationData};
+use lz4_flex::block;
 use vulkan_rust::{vk, Device, Instance};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -32,12 +33,12 @@ impl BlockType {
     }
 }
 
-fn upload_per_block_opacity_table(device: &Device, instance: &Instance, data: &mut VulkanApplicationData) -> anyhow::Error<()> {
-    // Create derived array of blockproperties(derived because needs to have strict byte positions)
-    // where each column? is blockproperties of one blocktype. So basically just blockproperties as a single source of truth also on GPU side
-    let (staging_buffer, staging_buffer_memory) = unsafe {
+fn upload_per_block_opacity_table(device: &Device, instance: &Instance, data: &mut VulkanApplicationData) -> anyhow::Result<()> {
+    let buffer_size_in_bytes = (size_of::<BlockPropertiesGPUcompatible>() * BLOCKS.len()) as u64;
+    let data_slice: [BlockPropertiesGPUcompatible; BLOCKS.len()] = std::array::from_fn(fill_data_slice);
+    let (block_storage_buffer, block_storage_memory) = unsafe {
         allocate_and_fill_buffer(
-            data_slice,
+            &data_slice,
             buffer_size_in_bytes,
             vk::BufferUsageFlags::STORAGE_BUFFER,
             device,
@@ -46,6 +47,33 @@ fn upload_per_block_opacity_table(device: &Device, instance: &Instance, data: &m
             host_visible_coherent(),
         )?
     };
+    data.block_storage_buffer = block_storage_buffer;
+    data.block_storage_memory = block_storage_memory;
+    Ok(())
+}
+
+fn fill_data_slice(i: usize) -> BlockPropertiesGPUcompatible {
+    let gpu_block_properties = BlockPropertiesGPUcompatible {
+        opaque: BLOCKS[i].opaque as u32,
+        solid: BLOCKS[i].solid as u32,
+        hardness: BLOCKS[i].hardness,
+        light_emission: BLOCKS[i].light_emission,
+        can_fall: BLOCKS[i].can_fall as u32,
+        top_texture: BLOCKS[i].top_texture,
+        side_texture: BLOCKS[i].side_texture,
+    };
+    gpu_block_properties
+}
+
+#[repr(C)]
+struct BlockPropertiesGPUcompatible {
+    opaque: u32,
+    solid: u32,
+    hardness: u32,
+    light_emission: u32,
+    can_fall: u32,
+    top_texture: u32,
+    side_texture: u32,
 }
 
 struct BlockProperties {
