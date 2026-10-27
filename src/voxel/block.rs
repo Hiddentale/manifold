@@ -37,7 +37,7 @@ pub struct GpuBlockProperties {
     light_emission: u32,
     can_fall: u32,
     top_texture: u32,
-    side_texture: u32,
+    side_texture: u64,
 }
 
 const _: () = assert!(

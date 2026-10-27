@@ -110,7 +110,7 @@ fn upload_per_block_property_table(device: &Device, instance: &Instance, data: &
 }
 
 /// Destroys, and frees the block table buffer and its memory.
-pub fn destroy_block_table(device: &Device, data: &mut VulkanApplicationData) {
+fn destroy_block_table(device: &Device, data: &mut VulkanApplicationData) {
     unsafe {
         device.destroy_buffer(data.block_storage_buffer, None);
         device.free_memory(data.block_storage_memory, None);
