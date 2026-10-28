@@ -1,3 +1,4 @@
+/// All possible block types
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum BlockType {
@@ -17,6 +18,7 @@ impl BlockType {
     }
 }
 
+/// Formats a block's properties into std430 byte layout
 pub fn construct_gpu_block_properties(block_properties: &BlockProperties) -> GpuBlockProperties {
     GpuBlockProperties {
         opaque: block_properties.opaque as u32,
@@ -29,6 +31,7 @@ pub fn construct_gpu_block_properties(block_properties: &BlockProperties) -> Gpu
     }
 }
 
+/// Properties that a blocktype can have, formatted for std430 byte layout
 #[repr(C)]
 pub struct GpuBlockProperties {
     opaque: u32,
@@ -45,6 +48,7 @@ const _: () = assert!(
     "GPU Block Properties layout has changed, update the matching struct in the shader file"
 );
 
+/// Properties that a blocktype can have
 pub struct BlockProperties {
     block_type: BlockType,
     opaque: bool,
@@ -52,10 +56,11 @@ pub struct BlockProperties {
     hardness: u32,
     light_emission: u32,
     can_fall: bool,
-    top_texture: u32,
-    side_texture: u32,
+    top_texture: u32,  //Future placeholder
+    side_texture: u32, //Future placeholder
 }
 
+/// A list of all possible blocks
 pub const BLOCKS: [BlockProperties; 8] = [
     BlockProperties {
         block_type: BlockType::Air,
