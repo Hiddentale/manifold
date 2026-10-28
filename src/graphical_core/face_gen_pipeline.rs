@@ -11,11 +11,11 @@ pub struct FaceGenPipeline {
 }
 
 impl FaceGenPipeline {
-    pub unsafe fn create(device: &Device, voxel_pool: &VoxelPool) -> anyhow::Result<Self> {
+    pub unsafe fn create(device: &Device, voxel_pool: &VoxelPool, block_storage_buffer: vk::Buffer) -> anyhow::Result<Self> {
         let descriptor_set_layout = create_layout(device)?;
         let descriptor_pool = create_pool(device)?;
         let descriptor_sets = allocate_sets(device, descriptor_pool, descriptor_set_layout)?;
-        write_descriptors(device, descriptor_sets, voxel_pool);
+        write_descriptors(device, descriptor_sets, voxel_pool, block_storage_buffer);
 
         let push_range = *vk::PushConstantRange::builder()
             .stage_flags(vk::ShaderStageFlags::COMPUTE)
@@ -98,15 +98,21 @@ unsafe fn create_layout(device: &Device) -> anyhow::Result<vk::DescriptorSetLayo
             .descriptor_count(1)
             .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
             .stage_flags(vk::ShaderStageFlags::COMPUTE),
+        // 7: block properties table
+        *vk::DescriptorSetLayoutBinding::builder()
+            .binding(7)
+            .descriptor_count(1)
+            .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+            .stage_flags(vk::ShaderStageFlags::COMPUTE),
     ];
     let info = vk::DescriptorSetLayoutCreateInfo::builder().bindings(&bindings);
     Ok(device.create_descriptor_set_layout(&info, None)?)
 }
 
 unsafe fn create_pool(device: &Device) -> anyhow::Result<vk::DescriptorPool> {
-    // 2 sets x 7 storage buffer bindings each.
+    // 2 sets x 8 storage buffer bindings each.
     let sizes = [*vk::DescriptorPoolSize::builder()
-        .descriptor_count(14)
+        .descriptor_count(16)
         .r#type(vk::DescriptorType::STORAGE_BUFFER)];
     let info = vk::DescriptorPoolCreateInfo::builder().max_sets(2).pool_sizes(&sizes);
     Ok(device.create_descriptor_pool(&info, None)?)
@@ -119,7 +125,7 @@ unsafe fn allocate_sets(device: &Device, pool: vk::DescriptorPool, layout: vk::D
     Ok([sets[0], sets[1]])
 }
 
-unsafe fn write_descriptors(device: &Device, sets: [vk::DescriptorSet; 2], pool: &VoxelPool) {
+unsafe fn write_descriptors(device: &Device, sets: [vk::DescriptorSet; 2], pool: &VoxelPool, block_storage_buffer: vk::Buffer) {
     for (phase, &set) in sets.iter().enumerate() {
         let chunk_info = [*vk::DescriptorBufferInfo::builder().buffer(pool.chunk_info_buffer).range(vk::WHOLE_SIZE)];
         let voxel = [*vk::DescriptorBufferInfo::builder().buffer(pool.voxel_buffer).range(vk::WHOLE_SIZE)];
@@ -134,6 +140,7 @@ unsafe fn write_descriptors(device: &Device, sets: [vk::DescriptorSet; 2], pool:
         let draw_args = [*vk::DescriptorBufferInfo::builder()
             .buffer(pool.draw_args_buffer[phase])
             .range(vk::WHOLE_SIZE)];
+        let block_properties_table = [*vk::DescriptorBufferInfo::builder().buffer(block_storage_buffer).range(vk::WHOLE_SIZE)];
 
         let writes = [
             *vk::WriteDescriptorSet::builder()
@@ -171,6 +178,11 @@ unsafe fn write_descriptors(device: &Device, sets: [vk::DescriptorSet; 2], pool:
                 .dst_binding(6)
                 .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
                 .buffer_info(&draw_args),
+            *vk::WriteDescriptorSet::builder()
+                .dst_set(set)
+                .dst_binding(7)
+                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                .buffer_info(&block_properties_table),
         ];
         device.update_descriptor_sets(&writes, &[] as &[vk::CopyDescriptorSet]);
     }

@@ -170,7 +170,8 @@ impl VulkanApplication {
         world.update(spawn, WORLD_DISTANCE);
 
         let voxel_pool = VoxelPool::new(VOXEL_POOL_CAPACITY as u32, &self.device, &self.vulkan_instance, &mut self.data)?;
-        let face_gen_pipeline = crate::graphical_core::face_gen_pipeline::FaceGenPipeline::create(&self.device, &voxel_pool)?;
+        let face_gen_pipeline =
+            crate::graphical_core::face_gen_pipeline::FaceGenPipeline::create(&self.device, &voxel_pool, self.data.block_storage_buffer)?;
         let vertex_pull_pipeline = crate::graphical_core::vertex_pull_pipeline::VertexPullPipeline::create(&self.device, &self.data, &voxel_pool)?;
         let cull_compact_pipeline = crate::graphical_core::cull_compact::CullCompactPipeline::create(&self.device, &self.data, &voxel_pool)?;
 

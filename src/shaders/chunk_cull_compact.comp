@@ -52,7 +52,6 @@ layout(push_constant) uniform PushConstants {
     uint chunk_count;
     vec2 screen_size;
     uint phase;
-    uint opaque_mask;
     uint stereo;
 };
 

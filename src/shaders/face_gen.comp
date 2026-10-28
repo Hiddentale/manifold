@@ -42,8 +42,18 @@ layout(std430, set = 0, binding = 6) buffer DrawArgs {
     uint first_instance;
 };
 
-layout(st430, set = 0, binding = 7) buffer BlockPropertiesTable{
-    
+struct GpuBlockProperties {
+    uint opaque;
+    uint solid;
+    uint hardness;
+    uint light_emission;
+    uint can_fall;
+    uint top_texture;
+    uint side_texture;
+};
+
+layout(std430, set = 0, binding = 7) readonly buffer BlockPropertiesTable {
+    GpuBlockProperties block_properties[];
 };
 
 layout(push_constant) uniform PushConstants {
@@ -52,7 +62,6 @@ layout(push_constant) uniform PushConstants {
     uint chunk_count;
     vec2 screen_size;
     uint phase;
-    uint opaque_mask;
     uint stereo;
 };
 
@@ -92,7 +101,7 @@ uint read_boundary(uint boundary_slot, uint face, uint u, uint v) {
 }
 
 bool is_opaque_block(uint block_type) {
-    return (opaque_mask & (1u << block_type)) != 0u;
+    return (block_properties[block_type].opaque) != 0u;
 }
 
 bool should_emit(uint block, uint neighbor) {
