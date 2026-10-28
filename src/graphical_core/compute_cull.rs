@@ -11,7 +11,6 @@ pub struct CullPushConstants {
     pub chunk_count: u32,
     pub screen_size: [f32; 2],
     pub phase: u32,
-    pub draw_offset: u32,
     pub stereo: u32,
     pub _pad: [f32; 2],
 }
@@ -142,8 +141,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn cull_push_constants_size_is_140_bytes() {
-        assert_eq!(std::mem::size_of::<CullPushConstants>(), 140);
+    fn cull_push_constants_size_is_136_bytes() {
+        assert_eq!(std::mem::size_of::<CullPushConstants>(), 136);
     }
 
     #[test]
@@ -153,8 +152,7 @@ mod tests {
         assert_eq!(memoffset::offset_of!(CullPushConstants, chunk_count), 108);
         assert_eq!(memoffset::offset_of!(CullPushConstants, screen_size), 112);
         assert_eq!(memoffset::offset_of!(CullPushConstants, phase), 120);
-        assert_eq!(memoffset::offset_of!(CullPushConstants, draw_offset), 124);
-        assert_eq!(memoffset::offset_of!(CullPushConstants, stereo), 128);
+        assert_eq!(memoffset::offset_of!(CullPushConstants, stereo), 124);
     }
 
     #[test]

@@ -48,6 +48,8 @@ pub struct VulkanApplicationData {
     pub depth_pyramid_mip_count: u32,
     pub sky_pipeline: vk::Pipeline,
     pub sky_pipeline_layout: vk::PipelineLayout,
+    pub block_storage_buffer: vk::Buffer,
+    pub block_storage_memory: vk::DeviceMemory,
 }
 
 /// World generates and streams terrain out to this distance around the player.
@@ -72,7 +74,7 @@ pub struct WorldResources {
 pub struct VulkanApplication {
     _vulkan_entry_point: Entry,
     vulkan_instance: Instance,
-    vulkan_application_data: VulkanApplicationData,
+    data: VulkanApplicationData,
     device: Device,
     frame: usize,
     pub(crate) resized: bool,
@@ -97,6 +99,6 @@ impl VulkanApplication {
     }
 
     pub fn swapchain_extent(&self) -> vk::Extent2D {
-        self.vulkan_application_data.swapchain_extent
+        self.data.swapchain_extent
     }
 }

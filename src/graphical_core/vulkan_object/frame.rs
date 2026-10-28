@@ -53,7 +53,7 @@ impl VulkanApplication {
             None => return Ok(()),
         };
         let dt_acquire = t1.elapsed();
-        update_uniform_buffer(&self.vulkan_application_data, eyes)?;
+        update_uniform_buffer(&self.data, eyes)?;
 
         let world_resources = self.world_resources.as_ref().unwrap();
         let frustum = if eyes.is_stereo() {
@@ -72,12 +72,8 @@ impl VulkanApplication {
             ],
             camera_pos: camera.position.to_array(),
             chunk_count: world_resources.voxel_pool.chunk_count(),
-            screen_size: [
-                self.vulkan_application_data.swapchain_extent.width as f32,
-                self.vulkan_application_data.swapchain_extent.height as f32,
-            ],
+            screen_size: [self.data.swapchain_extent.width as f32, self.data.swapchain_extent.height as f32],
             phase: 1,
-            draw_offset: crate::voxel::block::BlockType::opaque_mask(),
             stereo: if eyes.is_stereo() { 1 } else { 0 },
             _pad: [0.0; 2],
         };
@@ -85,7 +81,7 @@ impl VulkanApplication {
         let t2 = std::time::Instant::now();
         record_vertex_pull_command_buffer(
             &self.device,
-            &self.vulkan_application_data,
+            &self.data,
             image_index,
             &world_resources.face_gen_pipeline,
             &world_resources.vertex_pull_pipeline,
@@ -223,18 +219,15 @@ impl VulkanApplication {
             Some(index) => index,
             None => return Ok(()),
         };
-        update_uniform_buffer(&self.vulkan_application_data, eyes)?;
+        update_uniform_buffer(&self.data, eyes)?;
 
-        let cmd = self.vulkan_application_data.command_buffers[image_index];
+        let cmd = self.data.command_buffers[image_index];
         self.device.reset_command_buffer(cmd, vk::CommandBufferResetFlags::empty())?;
         self.device.begin_command_buffer(cmd, &vk::CommandBufferBeginInfo::builder())?;
 
-        crate::graphical_core::commands::begin_render_pass(&self.device, cmd, &self.vulkan_application_data, image_index);
-        crate::graphical_core::commands::draw_sky(&self.device, cmd, &self.vulkan_application_data);
-        let screen = [
-            self.vulkan_application_data.swapchain_extent.width as f32,
-            self.vulkan_application_data.swapchain_extent.height as f32,
-        ];
+        crate::graphical_core::commands::begin_render_pass(&self.device, cmd, &self.data, image_index);
+        crate::graphical_core::commands::draw_sky(&self.device, cmd, &self.data);
+        let screen = [self.data.swapchain_extent.width as f32, self.data.swapchain_extent.height as f32];
         self.ui.record(&self.device, cmd, screen);
         self.device.cmd_end_render_pass(cmd);
         self.device.end_command_buffer(cmd)?;

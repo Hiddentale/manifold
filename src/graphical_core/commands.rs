@@ -33,7 +33,7 @@ pub unsafe fn create_frame_buffers(device: &Device, data: &mut VulkanApplication
 }
 
 /// Creates a command pool for the graphics queue family.
-pub unsafe fn create_command_pool(instance: &Instance, device: &Device, data: &mut VulkanApplicationData) -> anyhow::Result<()> {
+pub unsafe fn create_command_pool(device: &Device, instance: &Instance, data: &mut VulkanApplicationData) -> anyhow::Result<()> {
     let indices = graphical_core::queue_families::RequiredQueueFamilies::get(instance, data, data.physical_device)?;
     let info = vk::CommandPoolCreateInfo::builder()
         .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)

@@ -2,12 +2,14 @@
 
 use super::{VulkanApplication, VulkanApplicationData, WorldResources, TIMING_QUERY_COUNT, VOXEL_POOL_CAPACITY, WORLD_DISTANCE};
 use crate::graphical_core::{
+    buffers::allocate_and_fill_buffer,
     camera::{create_uniform_buffer, destroy_uniform_buffer},
     commands::{allocate_command_buffers, create_command_pool, create_frame_buffers, create_sync_objects},
     compute_cull,
     depth::{create_depth_image, create_depth_pyramid},
     descriptors,
     gpu::choose_gpu,
+    host_visible_coherent,
     instance::{create_instance, create_logical_device},
     pipeline::create_sky_pipeline,
     render_pass::create_render_pass,
@@ -15,7 +17,10 @@ use crate::graphical_core::{
     ui_pipeline::UiPipeline,
     voxel_pool::VoxelPool,
 };
-use crate::voxel::world::World;
+use crate::voxel::{
+    block::{construct_gpu_block_properties, GpuBlockProperties, BLOCKS},
+    world::World,
+};
 use crate::VALIDATION_ENABLED;
 use anyhow::anyhow;
 use vulkan_rust::{vk, Device, Entry, Instance, LibloadingLoader};
@@ -64,10 +69,11 @@ unsafe fn create_presentation_pipeline(
 }
 
 unsafe fn create_resources(device: &Device, instance: &Instance, data: &mut VulkanApplicationData) -> anyhow::Result<()> {
-    create_command_pool(instance, device, data)?;
+    create_command_pool(device, instance, data)?;
     create_uniform_buffer(device, instance, data)?;
     let (texture_image, texture_memory, texture_image_view, texture_sampler) = create_texture_image(device, instance, data)?;
     descriptors::create_pool(device, data)?;
+    upload_per_block_property_table(device, instance, data)?;
     let descriptor_sets = descriptors::allocate_set(device, data.descriptor_pool, data.descriptor_set_layout)?;
     let descriptor_set = descriptor_sets
         .first()
@@ -82,6 +88,33 @@ unsafe fn create_resources(device: &Device, instance: &Instance, data: &mut Vulk
     data.descriptor_set = descriptor_set;
 
     Ok(())
+}
+
+fn upload_per_block_property_table(device: &Device, instance: &Instance, data: &mut VulkanApplicationData) -> anyhow::Result<()> {
+    let buffer_size_in_bytes = (size_of::<GpuBlockProperties>() * BLOCKS.len()) as u64;
+    let property_table: [GpuBlockProperties; BLOCKS.len()] = BLOCKS.each_ref().map(construct_gpu_block_properties);
+    let (block_storage_buffer, block_storage_memory) = unsafe {
+        allocate_and_fill_buffer(
+            &property_table,
+            buffer_size_in_bytes,
+            vk::BufferUsageFlags::STORAGE_BUFFER,
+            device,
+            instance,
+            data,
+            host_visible_coherent(),
+        )?
+    };
+    data.block_storage_buffer = block_storage_buffer;
+    data.block_storage_memory = block_storage_memory;
+    Ok(())
+}
+
+/// Destroys, and frees the block table buffer and its memory.
+fn destroy_block_table(device: &Device, data: &mut VulkanApplicationData) {
+    unsafe {
+        device.destroy_buffer(data.block_storage_buffer, None);
+        device.free_memory(data.block_storage_memory, None);
+    }
 }
 
 impl VulkanApplication {
@@ -114,7 +147,7 @@ impl VulkanApplication {
         Ok(Self {
             _vulkan_entry_point: entry,
             vulkan_instance: instance,
-            vulkan_application_data: data,
+            data,
             device,
             frame: 0,
             resized: false,
@@ -136,17 +169,11 @@ impl VulkanApplication {
         let spawn = glam::DVec3::new(0.0, 90.0, 0.0);
         world.update(spawn, WORLD_DISTANCE);
 
-        let voxel_pool = VoxelPool::new(
-            VOXEL_POOL_CAPACITY as u32,
-            &self.device,
-            &self.vulkan_instance,
-            &mut self.vulkan_application_data,
-        )?;
-        let face_gen_pipeline = crate::graphical_core::face_gen_pipeline::FaceGenPipeline::create(&self.device, &voxel_pool)?;
-        let vertex_pull_pipeline =
-            crate::graphical_core::vertex_pull_pipeline::VertexPullPipeline::create(&self.device, &self.vulkan_application_data, &voxel_pool)?;
-        let cull_compact_pipeline =
-            crate::graphical_core::cull_compact::CullCompactPipeline::create(&self.device, &self.vulkan_application_data, &voxel_pool)?;
+        let voxel_pool = VoxelPool::new(VOXEL_POOL_CAPACITY as u32, &self.device, &self.vulkan_instance, &mut self.data)?;
+        let face_gen_pipeline =
+            crate::graphical_core::face_gen_pipeline::FaceGenPipeline::create(&self.device, &voxel_pool, self.data.block_storage_buffer)?;
+        let vertex_pull_pipeline = crate::graphical_core::vertex_pull_pipeline::VertexPullPipeline::create(&self.device, &self.data, &voxel_pool)?;
+        let cull_compact_pipeline = crate::graphical_core::cull_compact::CullCompactPipeline::create(&self.device, &self.data, &voxel_pool)?;
 
         self.world_resources = Some(WorldResources {
             world,
@@ -196,36 +223,32 @@ impl VulkanApplication {
             wr.voxel_pool.destroy(&self.device);
         }
         compute_cull::destroy_depth_pyramid_pipeline(&self.device, &self.depth_pyramid_pipeline);
-        destroy_textures(&self.device, &mut self.vulkan_application_data);
-        destroy_uniform_buffer(&self.device, &mut self.vulkan_application_data);
-        self.device.destroy_descriptor_pool(self.vulkan_application_data.descriptor_pool, None);
-        self.device
-            .destroy_descriptor_set_layout(self.vulkan_application_data.descriptor_set_layout, None);
+        destroy_textures(&self.device, &mut self.data);
+        destroy_block_table(&self.device, &mut self.data);
+        destroy_uniform_buffer(&self.device, &mut self.data);
+        self.device.destroy_descriptor_pool(self.data.descriptor_pool, None);
+        self.device.destroy_descriptor_set_layout(self.data.descriptor_set_layout, None);
         self.device.destroy_query_pool(self.timing_query_pool, None);
     }
 
     unsafe fn destroy_sync_objects(&self) {
-        self.vulkan_application_data
-            .in_flight_fences
-            .iter()
-            .for_each(|f| self.device.destroy_fence(*f, None));
-        self.vulkan_application_data
+        self.data.in_flight_fences.iter().for_each(|f| self.device.destroy_fence(*f, None));
+        self.data
             .render_finished_semaphores
             .iter()
             .for_each(|s| self.device.destroy_semaphore(*s, None));
-        self.vulkan_application_data
+        self.data
             .image_available_semaphores
             .iter()
             .for_each(|s| self.device.destroy_semaphore(*s, None));
-        self.device.destroy_command_pool(self.vulkan_application_data.command_pool, None);
+        self.device.destroy_command_pool(self.data.command_pool, None);
     }
 
     unsafe fn destroy_core_infrastructure(&mut self) {
         self.device.destroy_device(None);
-        self.vulkan_instance.destroy_surface(self.vulkan_application_data.surface, None);
+        self.vulkan_instance.destroy_surface(self.data.surface, None);
         if VALIDATION_ENABLED {
-            self.vulkan_instance
-                .destroy_debug_utils_messenger_ext(self.vulkan_application_data.debug_messenger, None);
+            self.vulkan_instance.destroy_debug_utils_messenger_ext(self.data.debug_messenger, None);
         }
         self.vulkan_instance.destroy_instance(None);
     }

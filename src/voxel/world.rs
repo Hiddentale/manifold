@@ -82,7 +82,7 @@ impl World {
     pub fn block_solid_at(&self, world_x: i32, world_y: i32, world_z: i32) -> bool {
         let (chunk_pos, local_x, local_y, local_z) = convert_world_coordinates_to_chunk_coordinates(world_x, world_y, world_z);
         match self.chunks.get(&chunk_pos) {
-            Some(chunk) => chunk.get_block_at(local_x, local_y, local_z).is_opaque(),
+            Some(chunk) => chunk.get_block_at(local_x, local_y, local_z).is_solid(),
             None => false,
         }
     }
