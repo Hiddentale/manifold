@@ -1,6 +1,6 @@
 use crate::{
+    client::player::Player,
     graphical_core::{buffers::allocate_buffer, vulkan_object::VulkanApplicationData},
-    voxel::player::Player,
 };
 use glam::{Mat4, Vec3};
 use vulkan_rust::{vk, Device, Instance};

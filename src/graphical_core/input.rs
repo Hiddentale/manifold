@@ -1,4 +1,5 @@
-use crate::voxel::{metric, player::Player, world::World};
+use crate::client::player::Player;
+use crate::voxel::{metric, world::World};
 use std::collections::HashSet;
 use winit::{event::MouseButton, keyboard::KeyCode};
 

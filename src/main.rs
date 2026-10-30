@@ -1,8 +1,10 @@
+mod client;
 mod event_handling;
 mod game_state;
 mod graphical_core;
 mod hud;
 mod menu;
+mod simulation;
 mod storage;
 mod utils;
 mod voxel;
