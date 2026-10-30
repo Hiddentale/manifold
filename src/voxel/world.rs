@@ -7,12 +7,13 @@ use super::{
 };
 use glam::DVec3;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 pub const TERRAIN_MIN_CY: i32 = 0;
 pub const TERRAIN_MAX_CY: i32 = 47;
 
 pub struct World {
-    chunks: HashMap<ChunkPos, Chunk>,
+    chunks: HashMap<ChunkPos, Arc<Chunk>>,
     generator: ChunkGenerator,
     pub metric: MetricField,
 }
@@ -74,7 +75,7 @@ impl World {
                     continue;
                 }
                 loaded_chunks.push(chunk_pos);
-                self.chunks.insert(chunk_pos, chunk);
+                self.chunks.insert(chunk_pos, Arc::new(chunk));
             }
         }
     }
@@ -103,7 +104,7 @@ impl World {
         let (chunk_pos, local_x, local_y, local_z) = convert_world_coordinates_to_chunk_coordinates(world_x, world_y, world_z);
         match self.chunks.get_mut(&chunk_pos) {
             Some(chunk) => {
-                chunk.set_block_at(local_x, local_y, local_z, block);
+                Arc::make_mut(chunk).set_block_at(local_x, local_y, local_z, block);
                 true
             }
             None => false,
@@ -111,7 +112,7 @@ impl World {
     }
 
     pub fn get_chunk_at(&self, chunk_pos: ChunkPos) -> Option<&Chunk> {
-        self.chunks.get(&chunk_pos)
+        self.chunks.get(&chunk_pos).map(Arc::as_ref)
     }
 
     pub fn chunk_positions(&self) -> impl Iterator<Item = ChunkPos> + '_ {
@@ -201,7 +202,7 @@ mod tests {
     fn fully_loaded_column_is_not_rerequested() {
         let mut world = World::new(0);
         for cy in TERRAIN_MIN_CY..=TERRAIN_MAX_CY {
-            world.chunks.insert(ChunkPos { x: 0, y: cy, z: 0 }, Chunk::new(BlockType::Air));
+            world.chunks.insert(ChunkPos { x: 0, y: cy, z: 0 }, Arc::new(Chunk::new(BlockType::Air)));
         }
         let render_distance = 2;
         let _ = world.update(DVec3::new(0.0, 0.0, 0.0), render_distance);
@@ -219,7 +220,7 @@ mod tests {
         let mut world = World::new(0);
         let column = ChunkPos { x: 0, y: 0, z: 0 };
         for cy in TERRAIN_MIN_CY..=TERRAIN_MAX_CY {
-            world.chunks.insert(ChunkPos { x: 0, y: cy, z: 0 }, Chunk::new(BlockType::Air));
+            world.chunks.insert(ChunkPos { x: 0, y: cy, z: 0 }, Arc::new(Chunk::new(BlockType::Air)));
         }
         let render_distance = 2;
         let far_chunk_x = render_distance + 5;
