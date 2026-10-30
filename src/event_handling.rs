@@ -1,4 +1,5 @@
 use crate::{
+    client::player::Player,
     game_state::GameState,
     graphical_core::{
         camera::{Camera, EyeMatrices},
@@ -9,7 +10,6 @@ use crate::{
     menu::draw_menu,
     storage::world_meta::create_world,
     utils::rand_seed,
-    voxel::player::Player,
 };
 use std::time::Instant;
 use winit::{

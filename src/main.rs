@@ -1,3 +1,4 @@
+mod client;
 mod event_handling;
 mod game_state;
 mod graphical_core;

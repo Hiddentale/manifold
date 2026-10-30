@@ -20,6 +20,7 @@ A from-scratch voxel engine built with **Rust** and **Vulkan**, mainly built for
 src/
   graphical_core/   Vulkan renderer, pipelines, GPU pools, command recording
   voxel/            Chunks, terrain, biomes
+  rendering/        client/server architecture
   storage/          Region files, world metadata, disk caching
   vr/               OpenXR session, stereo swapchains, multiview
   shaders/          GLSL mesh/task/vertex/fragment/compute shaders (SPIR-V)
