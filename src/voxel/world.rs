@@ -9,6 +9,7 @@ use glam::DVec3;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+pub const WORLD_DISTANCE: i32 = 10;
 pub const TERRAIN_MIN_CY: i32 = 0;
 pub const TERRAIN_MAX_CY: i32 = 47;
 

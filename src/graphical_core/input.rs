@@ -60,7 +60,7 @@ impl InputState {
         self.pressed_keys.contains(&key)
     }
 
-    /// Mouse look — call every render frame for smoothness.
+    /// Mouse look, call every render frame for smoothness.
     pub fn apply_camera_rotation(&mut self, player: &mut Player) {
         let (dx, dy) = self.mouse_delta;
         self.mouse_delta = (0.0, 0.0);

@@ -1,15 +1,16 @@
 use crate::simulation::protocol::Event;
 use crate::voxel::world::ChunkChanges;
-use crate::voxel::{chunk::Chunk, chunk_generator::ChunkGenerator, grid::ChunkPos};
+use crate::voxel::{chunk::Chunk, grid::ChunkPos};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+/// All the data a player can see
 pub struct ClientWorld {
     chunks: HashMap<ChunkPos, Arc<Chunk>>,
 }
 
 impl ClientWorld {
-    pub fn new(&mut self) -> ClientWorld {
+    pub fn new() -> ClientWorld {
         Self { chunks: HashMap::new() }
     }
     pub fn apply(&mut self, event: Event, chunk_changes: &mut ChunkChanges) {

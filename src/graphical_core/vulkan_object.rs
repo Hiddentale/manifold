@@ -3,7 +3,7 @@ mod lifecycle;
 mod presentation;
 
 use crate::graphical_core::{camera::UniformBufferObject, compute_cull::DepthPyramidResources, ui_pipeline::UiPipeline, voxel_pool::VoxelPool};
-use crate::voxel::world::World;
+use crate::voxel::world::WORLD_DISTANCE;
 use vulkan_rust::{vk, Device, Entry, Instance};
 
 #[derive(Clone, Debug, Default)]
@@ -53,7 +53,7 @@ pub struct VulkanApplicationData {
 }
 
 /// World generates and streams terrain out to this distance around the player.
-pub const WORLD_DISTANCE: i32 = 10;
+
 /// Number of timestamp queries written per frame in `record_vertex_pull_command_buffer`.
 /// Slot meanings (set by the recording code):
 /// 0 = start, 1 = after sky, 2 = after phase1 mesh, 3 = after depth pyramid,
@@ -61,14 +61,11 @@ pub const WORLD_DISTANCE: i32 = 10;
 pub const TIMING_QUERY_COUNT: u32 = 7;
 const VOXEL_POOL_CAPACITY: usize = (i32::pow(2 * WORLD_DISTANCE + 1, 2) * 48) as usize;
 
-/// World-specific resources created when entering a world, destroyed when returning to menu.
-pub struct WorldResources {
-    pub world: World,
+pub struct SceneResources {
     voxel_pool: VoxelPool,
     face_gen_pipeline: crate::graphical_core::face_gen_pipeline::FaceGenPipeline,
     vertex_pull_pipeline: crate::graphical_core::vertex_pull_pipeline::VertexPullPipeline,
     cull_compact_pipeline: crate::graphical_core::cull_compact::CullCompactPipeline,
-    last_player_chunk: [i32; 3],
 }
 
 pub struct VulkanApplication {
@@ -80,7 +77,7 @@ pub struct VulkanApplication {
     pub(crate) resized: bool,
     depth_pyramid_pipeline: DepthPyramidResources,
     depth_pyramid_needs_init: bool,
-    world_resources: Option<WorldResources>,
+    scene_resources: Option<SceneResources>,
     pub ui: UiPipeline,
     /// Single-slot timestamp query pool for per-stage GPU timing.
     /// Size = `TIMING_QUERY_COUNT`. Read back synchronously each frame.
@@ -89,13 +86,8 @@ pub struct VulkanApplication {
 }
 
 impl VulkanApplication {
-    /// Returns the world if one is loaded.
-    pub fn world(&self) -> Option<&World> {
-        self.world_resources.as_ref().map(|wr| &wr.world)
-    }
-
     pub fn has_loaded_world(&self) -> bool {
-        self.world_resources.is_some()
+        self.scene_resources.is_some()
     }
 
     pub fn swapchain_extent(&self) -> vk::Extent2D {

@@ -1,8 +1,9 @@
 use crate::{
     game_state::GameState,
-    graphical_core::{ui_pipeline::UiPipeline, vulkan_object::WORLD_DISTANCE},
+    graphical_core::ui_pipeline::UiPipeline,
     storage::world_meta::{create_world, list_worlds},
     utils::rand_seed,
+    voxel::world::WORLD_DISTANCE,
 };
 
 const BUTTON_W: f32 = 300.0;

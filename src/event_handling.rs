@@ -4,12 +4,13 @@ use crate::{
     graphical_core::{
         camera::{Camera, EyeMatrices},
         input::InputState,
-        vulkan_object::{VulkanApplication, WORLD_DISTANCE},
+        vulkan_object::VulkanApplication,
     },
     hud::{draw_ui, FpsCounter},
     menu::draw_menu,
     storage::world_meta::create_world,
     utils::rand_seed,
+    voxel::world::{World, WORLD_DISTANCE},
 };
 use std::time::Instant;
 use winit::{
@@ -22,6 +23,7 @@ use winit::{
 
 pub struct EventInfo {
     game_state: GameState,
+    world: Option<World>,
     input: InputState,
     pub player: Player,
     pub camera: Camera,
@@ -46,6 +48,7 @@ pub fn initialize_event_info(event_handler: &EventLoopWindowTarget<()>) -> anyho
 
     let event_info = EventInfo {
         game_state: GameState::TitleScreen,
+        world: None,
         input: InputState::new(),
         player: Player::new(),
         camera: Camera::default(),
@@ -229,15 +232,24 @@ pub fn handle_wait_event(event_info: &mut EventInfo) {
     let delta_time = (now - event_info.last_frame).as_secs_f32();
     event_info.last_frame = now;
     event_info.fps_counter.tick(delta_time);
+
     match &mut event_info.game_state {
         GameState::Playing => {
+            let chunk_changes = event_info
+                .world
+                .as_mut()
+                .map(|world| world.update(event_info.player.world_position().as_dvec3(), WORLD_DISTANCE));
+            //
+            //
+            //
+            //
             event_info.input.apply_camera_rotation(&mut event_info.player);
             event_info.physics_accumulator = (event_info.physics_accumulator + delta_time).min(MAX_PHYSICS_CATCHUP);
+
+            let Some(world) = &event_info.world else { return };
             while event_info.physics_accumulator >= PHYSICS_TICK {
-                if let Some(world) = event_info.application.world() {
-                    let local_p = world.metric.sample_metric_at_pos(event_info.player.world_position()).minkowski_exponent;
-                    event_info.input.tick_movement(&mut event_info.player, world, PHYSICS_TICK, local_p);
-                }
+                let local_p = world.metric.sample_metric_at_pos(event_info.player.world_position()).minkowski_exponent;
+                event_info.input.tick_movement(&mut event_info.player, &world, PHYSICS_TICK, local_p);
                 event_info.physics_accumulator -= PHYSICS_TICK;
             }
             event_info.camera.sync_from_player(&event_info.player);
@@ -245,13 +257,17 @@ pub fn handle_wait_event(event_info: &mut EventInfo) {
             event_info.input.take_right_click();
         }
         GameState::PreGenerating { .. } => {
-            unsafe { event_info.application.update_world(&event_info.camera).ok() };
+            let chunk_changes = event_info
+                .world
+                .as_mut()
+                .map(|world| world.update(event_info.player.world_position().as_dvec3(), WORLD_DISTANCE));
             tick_pregen(
                 &mut event_info.game_state,
                 &mut event_info.application,
                 &event_info.user_window,
                 &mut event_info.camera,
                 &mut event_info.player,
+                &event_info.world,
             );
         }
         GameState::EnteringWorld { .. } => {
@@ -271,7 +287,14 @@ pub fn handle_wait_event(event_info: &mut EventInfo) {
     event_info.user_window.request_redraw();
 }
 
-fn tick_pregen(state: &mut GameState, application: &mut VulkanApplication, window: &winit::window::Window, camera: &mut Camera, player: &mut Player) {
+fn tick_pregen(
+    state: &mut GameState,
+    application: &mut VulkanApplication,
+    window: &winit::window::Window,
+    camera: &mut Camera,
+    player: &mut Player,
+    world: &Option<World>,
+) {
     let GameState::PreGenerating {
         world_dir,
         seed,
@@ -291,7 +314,7 @@ fn tick_pregen(state: &mut GameState, application: &mut VulkanApplication, windo
             return;
         }
     }
-    let columns_count = if let Some(world) = application.world() {
+    let columns_count = if let Some(world) = world {
         let mut columns_seen = std::collections::HashSet::new();
         for chunk_pos in world.chunk_positions() {
             columns_seen.insert((chunk_pos.x, chunk_pos.z));

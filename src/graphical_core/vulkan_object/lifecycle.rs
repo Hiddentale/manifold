@@ -1,6 +1,6 @@
 //! Creation, world entry/exit, and full teardown of `VulkanApplication`.
 
-use super::{VulkanApplication, VulkanApplicationData, WorldResources, TIMING_QUERY_COUNT, VOXEL_POOL_CAPACITY, WORLD_DISTANCE};
+use super::{SceneResources, VulkanApplication, VulkanApplicationData, TIMING_QUERY_COUNT, VOXEL_POOL_CAPACITY, WORLD_DISTANCE};
 use crate::graphical_core::{
     buffers::allocate_and_fill_buffer,
     camera::{create_uniform_buffer, destroy_uniform_buffer},
@@ -153,7 +153,7 @@ impl VulkanApplication {
             resized: false,
             depth_pyramid_pipeline,
             depth_pyramid_needs_init: true,
-            world_resources: None,
+            scene_resources: None,
             ui,
             timing_query_pool,
             timing_period_ns,
@@ -175,13 +175,11 @@ impl VulkanApplication {
         let vertex_pull_pipeline = crate::graphical_core::vertex_pull_pipeline::VertexPullPipeline::create(&self.device, &self.data, &voxel_pool)?;
         let cull_compact_pipeline = crate::graphical_core::cull_compact::CullCompactPipeline::create(&self.device, &self.data, &voxel_pool)?;
 
-        self.world_resources = Some(WorldResources {
-            world,
+        self.scene_resources = Some(SceneResources {
             voxel_pool,
             face_gen_pipeline,
             vertex_pull_pipeline,
             cull_compact_pipeline,
-            last_player_chunk: [0, 0, 0],
         });
         self.depth_pyramid_needs_init = true;
         Ok(())
@@ -193,7 +191,7 @@ impl VulkanApplication {
     /// Calls unsafe Vulkan APIs.
     pub unsafe fn exit_world(&mut self) {
         self.device.device_wait_idle().unwrap();
-        if let Some(mut wr) = self.world_resources.take() {
+        if let Some(mut wr) = self.scene_resources.take() {
             wr.cull_compact_pipeline.destroy(&self.device);
             wr.vertex_pull_pipeline.destroy(&self.device);
             wr.face_gen_pipeline.destroy(&self.device);
@@ -216,7 +214,7 @@ impl VulkanApplication {
 
     unsafe fn destroy_resources(&mut self) {
         self.ui.destroy(&self.device);
-        if let Some(mut wr) = self.world_resources.take() {
+        if let Some(mut wr) = self.scene_resources.take() {
             wr.cull_compact_pipeline.destroy(&self.device);
             wr.vertex_pull_pipeline.destroy(&self.device);
             wr.face_gen_pipeline.destroy(&self.device);

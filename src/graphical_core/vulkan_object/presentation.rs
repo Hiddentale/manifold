@@ -3,7 +3,7 @@
 use super::VulkanApplication;
 use crate::graphical_core::{
     commands::{allocate_command_buffers, create_frame_buffers},
-    compute_cull,
+    compute_cull::{create_depth_pyramid_pipeline, destroy_depth_pyramid_pipeline},
     depth::{create_depth_image, create_depth_pyramid, destroy_depth_image, destroy_depth_pyramid},
     pipeline::create_sky_pipeline,
     render_pass::create_render_pass,
@@ -86,13 +86,13 @@ impl VulkanApplication {
     /// Calls unsafe Vulkan destruction and creation APIs.
     pub unsafe fn recreate_swapchain(&mut self, user_window: &Window) -> anyhow::Result<()> {
         self.device.device_wait_idle()?;
-        compute_cull::destroy_depth_pyramid_pipeline(&self.device, &self.depth_pyramid_pipeline);
+        destroy_depth_pyramid_pipeline(&self.device, &self.depth_pyramid_pipeline);
         self.destroy_swapchain();
         create_swapchain(user_window, &self.vulkan_instance, &self.device, &mut self.data)?;
         create_swapchain_image_views(&self.device, &mut self.data)?;
         create_depth_image(&self.device, &self.vulkan_instance, &mut self.data)?;
         create_depth_pyramid(&self.device, &self.vulkan_instance, &mut self.data)?;
-        self.depth_pyramid_pipeline = compute_cull::create_depth_pyramid_pipeline(&self.device, &self.data)?;
+        self.depth_pyramid_pipeline = create_depth_pyramid_pipeline(&self.device, &self.data)?;
         self.depth_pyramid_needs_init = true;
         create_render_pass(&self.vulkan_instance, &self.device, &mut self.data)?;
         create_sky_pipeline(&self.device, &mut self.data)?;
@@ -100,7 +100,7 @@ impl VulkanApplication {
         allocate_command_buffers(&self.device, &mut self.data)?;
         self.data.images_in_flight.resize(self.data.swapchain_images.len(), vk::Fence::null());
         // Re-bind depth pyramid descriptors for world pipelines (handles were invalidated)
-        if let Some(wr) = &self.world_resources {
+        if let Some(wr) = &self.scene_resources {
             wr.cull_compact_pipeline.update_depth_pyramid(&self.device, &self.data);
         }
         Ok(())
