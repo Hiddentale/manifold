@@ -1,23 +1,10 @@
 mod client;
-mod event_handling;
-mod game_state;
-mod graphical_core;
-mod hud;
-mod menu;
-mod simulation;
-mod storage;
+mod server;
+mod shared;
 mod utils;
-mod voxel;
 use anyhow::Result;
 use event_handling::{handle_device_event, handle_wait_event, handle_window_event, initialize_event_info, release_cursor};
-use vulkan_rust::{vk, Version};
 use winit::{event::Event, event_loop::EventLoop};
-
-const PORTABILITY_MACOS_VERSION: Version = Version::new(1, 3, 216);
-const VALIDATION_ENABLED: bool = cfg!(debug_assertions);
-
-const VALIDATION_LAYER: &std::ffi::CStr = c"VK_LAYER_KHRONOS_validation";
-const DEVICE_EXTENSIONS: &[&std::ffi::CStr] = &[vk::extension_names::KHR_SWAPCHAIN_EXTENSION_NAME];
 
 fn main() -> Result<()> {
     initialize_error_handler();

@@ -20,7 +20,7 @@ fn is_glsl_compiler_available() -> bool {
 
 fn discover_shader_files() -> anyhow::Result<Vec<PathBuf>> {
     let mut shader_paths = Vec::new();
-    let shader_directory_path = "src/shaders";
+    let shader_directory_path = "src/client/render/shaders";
 
     for entry_result in std::fs::read_dir(shader_directory_path)? {
         let entry = entry_result?.path();

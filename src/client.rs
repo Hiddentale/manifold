@@ -1,2 +1,3 @@
-pub mod client_world;
-pub mod player;
+pub mod app;
+pub mod render;
+pub mod session;
