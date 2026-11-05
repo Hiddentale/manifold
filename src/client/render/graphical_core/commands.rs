@@ -231,7 +231,7 @@ pub unsafe fn record_vertex_pull_command_buffer(
     depth_pyramid: &DepthPyramidResources,
     cull_push: &CullPushConstants,
     pyramid_needs_init: bool,
-    ui: UiPipeline,
+    ui: &UiPipeline,
     timing_query_pool: vk::QueryPool,
 ) -> anyhow::Result<()> {
     let cmd = data.command_buffers[image_index];

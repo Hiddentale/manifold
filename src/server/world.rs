@@ -1,16 +1,15 @@
 use super::chunk_generator::ChunkGenerator;
 use crate::shared::{
     block::BlockType,
-    chunk::Chunk,
+    chunk::{Chunk, ChunkLookup},
     grid::{world_to_chunk_local, ChunkPos},
     metric::MetricField,
 };
+use crate::shared::{TERRAIN_MAX_CY, TERRAIN_MIN_CY};
+
 use glam::DVec3;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-
-pub const TERRAIN_MIN_CY: i32 = 0;
-pub const TERRAIN_MAX_CY: i32 = 47;
 
 pub struct World {
     chunks: HashMap<ChunkPos, Arc<Chunk>>,
@@ -21,6 +20,12 @@ pub struct World {
 pub struct ServerChunkChanges {
     pub loaded_chunks: Vec<ChunkPos>,
     pub unloaded_chunks: Vec<ChunkPos>,
+}
+
+impl ChunkLookup for World {
+    fn get_chunk_at(&self, position: &ChunkPos) -> Option<&Chunk> {
+        self.chunks.get(&position).map(Arc::as_ref)
+    }
 }
 
 impl World {
@@ -109,10 +114,6 @@ impl World {
             }
             None => false,
         }
-    }
-
-    pub fn get_chunk_at(&self, chunk_pos: ChunkPos) -> Option<&Chunk> {
-        self.chunks.get(&chunk_pos).map(Arc::as_ref)
     }
 
     pub fn chunk_positions(&self) -> impl Iterator<Item = ChunkPos> + '_ {

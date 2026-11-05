@@ -1,6 +1,6 @@
 use super::{buffers::allocate_buffer, vulkan_object::VulkanApplicationData};
-use crate::client::render::chunk_source::ChunkSource;
-use crate::client::session::client_world::ClientWorld;
+use crate::client::session::world_replica::WorldReplica;
+use crate::shared::chunk::ChunkLookup;
 use crate::shared::{
     block::BlockType,
     chunk::{Chunk, CHUNK_SIZE},
@@ -163,7 +163,7 @@ impl VoxelPool {
     }
 
     /// Uploads a chunk's voxel data and boundary slices to GPU.
-    pub unsafe fn upload_chunk(&mut self, pos: ChunkPos, chunk: &Chunk, world: &ClientWorld) {
+    pub unsafe fn upload_chunk(&mut self, pos: ChunkPos, chunk: &Chunk, world: &WorldReplica) {
         let pool_index = self.allocate_pool_index(pos);
 
         // Write voxel data
@@ -220,7 +220,7 @@ impl VoxelPool {
     }
 
     /// Updates boundary data for a chunk's neighbors (call when a chunk is loaded/unloaded).
-    pub unsafe fn invalidate_neighbor_boundaries(&mut self, chunk_pos: ChunkPos, world: &ClientWorld) {
+    pub unsafe fn invalidate_neighbor_boundaries(&mut self, chunk_pos: ChunkPos, world: &WorldReplica) {
         let neighbors = [
             chunk_pos.offset(1, 0, 0),
             chunk_pos.offset(-1, 0, 0),
@@ -291,25 +291,25 @@ impl VoxelPool {
         pool_index
     }
 
-    unsafe fn write_boundary(&self, pool_index: u32, chunk_pos: ChunkPos, world: &ClientWorld) {
+    unsafe fn write_boundary(&self, pool_index: u32, chunk_pos: ChunkPos, world: &WorldReplica) {
         let base = pool_index as usize * TOTAL_BYTES_CHUNK_SIDES;
 
-        self.write_boundary_face(base, 0, world.get_chunk_at(chunk_pos.offset(1, 0, 0)), |chunk, u, v| {
+        self.write_boundary_face(base, 0, world.get_chunk_at(&chunk_pos.offset(1, 0, 0)), |chunk, u, v| {
             chunk.get_block_at(0, v, u)
         });
-        self.write_boundary_face(base, 1, world.get_chunk_at(chunk_pos.offset(-1, 0, 0)), |chunk, u, v| {
+        self.write_boundary_face(base, 1, world.get_chunk_at(&chunk_pos.offset(-1, 0, 0)), |chunk, u, v| {
             chunk.get_block_at(CHUNK_SIZE - 1, v, u)
         });
-        self.write_boundary_face(base, 2, world.get_chunk_at(chunk_pos.offset(0, 1, 0)), |chunk, u, v| {
+        self.write_boundary_face(base, 2, world.get_chunk_at(&chunk_pos.offset(0, 1, 0)), |chunk, u, v| {
             chunk.get_block_at(u, 0, v)
         });
-        self.write_boundary_face(base, 3, world.get_chunk_at(chunk_pos.offset(0, -1, 0)), |chunk, u, v| {
+        self.write_boundary_face(base, 3, world.get_chunk_at(&chunk_pos.offset(0, -1, 0)), |chunk, u, v| {
             chunk.get_block_at(u, CHUNK_SIZE - 1, v)
         });
-        self.write_boundary_face(base, 4, world.get_chunk_at(chunk_pos.offset(0, 0, 1)), |chunk, u, v| {
+        self.write_boundary_face(base, 4, world.get_chunk_at(&chunk_pos.offset(0, 0, 1)), |chunk, u, v| {
             chunk.get_block_at(u, v, 0)
         });
-        self.write_boundary_face(base, 5, world.get_chunk_at(chunk_pos.offset(0, 0, -1)), |chunk, u, v| {
+        self.write_boundary_face(base, 5, world.get_chunk_at(&chunk_pos.offset(0, 0, -1)), |chunk, u, v| {
             chunk.get_block_at(u, v, CHUNK_SIZE - 1)
         });
     }

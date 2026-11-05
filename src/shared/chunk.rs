@@ -1,4 +1,7 @@
 use super::block::BlockType;
+use super::grid::ChunkPos;
+use crate::shared::grid::world_to_chunk_local;
+use glam::DVec3;
 
 pub const CHUNK_SIZE: usize = 16;
 const CHUNK_VOLUME: usize = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
@@ -37,6 +40,19 @@ impl Chunk {
     pub fn contains_no_air(&self) -> bool {
         let blocks = self.as_bytes();
         blocks.iter().all(|&blocktype| blocktype != BlockType::Air as u8)
+    }
+}
+
+pub trait ChunkLookup {
+    fn get_chunk_at(&self, position: &ChunkPos) -> Option<&Chunk>;
+
+    fn block_solid_at(&self, block_x: i32, block_y: i32, block_z: i32) -> bool {
+        let (chunk_pos, x, y, z) = world_to_chunk_local(DVec3::new(block_x as f64, block_y as f64, block_z as f64));
+        if let Some(chunk) = self.get_chunk_at(&chunk_pos) {
+            chunk.get_block_at(x, y, z).is_solid()
+        } else {
+            true
+        }
     }
 }
 

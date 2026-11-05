@@ -1,17 +1,19 @@
 use super::chunk_changes::ClientChunkChanges;
-use crate::client::render::chunk_source::ChunkSource;
 use crate::shared::protocol::Event;
-use crate::shared::{chunk::Chunk, grid::ChunkPos};
+use crate::shared::{
+    chunk::{Chunk, ChunkLookup},
+    grid::ChunkPos,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// All the data a player's PC can see
-pub struct ClientWorld {
+/// The client's replica of server-sent chunks
+pub struct WorldReplica {
     chunks: HashMap<ChunkPos, Arc<Chunk>>,
 }
 
-impl ClientWorld {
-    pub fn new() -> ClientWorld {
+impl WorldReplica {
+    pub fn new() -> WorldReplica {
         Self { chunks: HashMap::new() }
     }
     pub fn apply(&mut self, event: Event, chunk_changes: &mut ClientChunkChanges) {
@@ -28,8 +30,8 @@ impl ClientWorld {
     }
 }
 
-impl ChunkSource for ClientWorld {
-    fn get_chunk_at(&self, position: ChunkPos) -> Option<&Chunk> {
+impl ChunkLookup for WorldReplica {
+    fn get_chunk_at(&self, position: &ChunkPos) -> Option<&Chunk> {
         self.chunks.get(&position).map(Arc::as_ref)
     }
 }

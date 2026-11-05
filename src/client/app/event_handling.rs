@@ -1,5 +1,6 @@
 use super::game_state::GameState;
 use super::menu::draw_menu;
+use crate::client::session::world_replica::WorldReplica;
 use crate::{
     client::render::graphical_core::{
         camera::{Camera, EyeMatrices},
@@ -7,7 +8,7 @@ use crate::{
         vulkan_object::VulkanApplication,
     },
     client::session::hud::{draw_ui, FpsCounter},
-    client::session::player::Player,
+    client::session::player::LocalPlayer,
     utils::rand_seed,
 };
 use std::time::Instant;
@@ -21,9 +22,9 @@ use winit::{
 
 pub struct EventInfo {
     game_state: GameState,
-    world: Option<World>,
+    world: Option<WorldReplica>,
     input: InputState,
-    pub player: Player,
+    pub player: LocalPlayer,
     pub camera: Camera,
     pub fps_counter: FpsCounter,
     last_frame: Instant,
@@ -290,7 +291,7 @@ fn tick_pregen(
     application: &mut VulkanApplication,
     window: &winit::window::Window,
     camera: &mut Camera,
-    player: &mut Player,
+    player: &mut LocalPlayer,
     world: &Option<World>,
 ) {
     let GameState::PreGenerating {
@@ -326,7 +327,7 @@ fn tick_pregen(
         *state = GameState::Playing;
         grab_cursor(window);
         *camera = Camera::default();
-        *player = Player::new();
+        *player = LocalPlayer::new();
     }
 }
 

@@ -1,6 +1,5 @@
 use vulkan_rust::{vk, Version};
 
-pub mod chunk_source;
 pub mod graphical_core;
 
 const PORTABILITY_MACOS_VERSION: Version = Version::new(1, 3, 216);

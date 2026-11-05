@@ -1,4 +1,4 @@
-use crate::shared::world_meta::WorldMeta;
+use super::world_meta::WorldMeta;
 use std::{
     fs,
     path::{Path, PathBuf},

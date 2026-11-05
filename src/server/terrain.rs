@@ -1,9 +1,9 @@
 use super::biome::{self, Biome};
-use super::world::{TERRAIN_MAX_CY, TERRAIN_MIN_CY};
 use crate::shared::{
     block::BlockType,
     chunk::{Chunk, CHUNK_SIZE},
 };
+use crate::shared::{TERRAIN_MAX_CY, TERRAIN_MIN_CY};
 use noise::{Fbm, MultiFractal, NoiseFn, Perlin, RidgedMulti};
 
 pub(crate) const SEA_LEVEL: usize = 64;

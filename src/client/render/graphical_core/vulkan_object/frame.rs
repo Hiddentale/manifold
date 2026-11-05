@@ -8,16 +8,16 @@ use super::super::{
     MAX_FRAMES_IN_FLIGHT,
 };
 use super::{VulkanApplication, TIMING_QUERY_COUNT};
-use crate::client::render::chunk_source::ChunkSource;
-use crate::client::session::client_world::ClientWorld;
+use crate::client::session::world_replica::WorldReplica;
+use crate::shared::chunk::ChunkLookup;
 use crate::shared::grid::ChunkPos;
-use crate::voxel::world::{TERRAIN_MAX_CY, TERRAIN_MIN_CY};
+use crate::shared::{TERRAIN_MAX_CY, TERRAIN_MIN_CY};
 use vulkan_rust::vk;
 use winit::window::Window;
 
-fn neighbors_all_completely_solid(world: &ClientWorld, chunk_pos: ChunkPos) -> bool {
+fn neighbors_all_completely_solid(world: &WorldReplica, chunk_pos: ChunkPos) -> bool {
     let neighbor_solid = |neighbor_pos: ChunkPos| -> bool {
-        match world.get_chunk_at(neighbor_pos) {
+        match world.get_chunk_at(&neighbor_pos) {
             Some(chunk) => chunk.contains_no_air(),
             None => (TERRAIN_MIN_CY..=TERRAIN_MAX_CY).contains(&neighbor_pos.y),
         }

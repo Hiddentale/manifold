@@ -1,5 +1,5 @@
 use super::{buffers::allocate_buffer, vulkan_object::VulkanApplicationData};
-use crate::client::session::player::Player;
+use crate::client::session::player::LocalPlayer;
 use glam::{Mat4, Vec3};
 use vulkan_rust::{vk, Device, Instance};
 
@@ -13,18 +13,18 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn from_player(player: &Player) -> Self {
+    pub fn from_player(player: &LocalPlayer) -> Self {
         Self {
             position: player.camera_position(),
-            forward: player.forward,
-            right: player.right,
+            forward: player.body.forward,
+            right: player.body.right,
         }
     }
 
-    pub fn sync_from_player(&mut self, player: &Player) {
+    pub fn sync_from_player(&mut self, player: &LocalPlayer) {
         self.position = player.camera_position();
-        self.forward = player.forward;
-        self.right = player.right;
+        self.forward = player.body.forward;
+        self.right = player.body.right;
     }
 
     pub fn view_matrix(&self) -> Mat4 {
@@ -35,7 +35,7 @@ impl Camera {
 
 impl Default for Camera {
     fn default() -> Self {
-        Self::from_player(&Player::new())
+        Self::from_player(&LocalPlayer::new())
     }
 }
 

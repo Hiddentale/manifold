@@ -1,5 +1,5 @@
-use crate::client::session::player::Player;
-use crate::voxel::{metric, world::World};
+use crate::client::session::{player::LocalPlayer, world_replica::WorldReplica};
+use crate::shared::metric;
 use std::collections::HashSet;
 use winit::{event::MouseButton, keyboard::KeyCode};
 
@@ -61,28 +61,28 @@ impl InputState {
     }
 
     /// Mouse look, call every render frame for smoothness.
-    pub fn apply_camera_rotation(&mut self, player: &mut Player) {
+    pub fn apply_camera_rotation(&mut self, player: &mut LocalPlayer) {
         let (dx, dy) = self.mouse_delta;
         self.mouse_delta = (0.0, 0.0);
-        player.rotate_yaw(-dx as f32 * MOUSE_SENSITIVITY);
-        player.rotate_pitch(-dy as f32 * MOUSE_SENSITIVITY);
+        player.orientation.rotate_yaw(&mut player.body, -dx as f32 * MOUSE_SENSITIVITY);
+        player.orientation.rotate_pitch(&mut player.body, -dy as f32 * MOUSE_SENSITIVITY);
     }
 
     /// Per-physics-tick movement step. Reads pressed keys and
     /// applies one fixed-dt move + physics integration.
-    pub fn tick_movement(&self, player: &mut Player, world: &World, dt: f32, local_p: f32) {
-        if player.fly_mode {
+    pub fn tick_movement(&self, player: &mut LocalPlayer, world: &WorldReplica, dt: f32, local_p: f32) {
+        if player.body.fly_mode {
             self.apply_fly_movement(player, dt, local_p);
         } else {
             self.apply_walk_movement(player, world, dt, local_p);
         }
-        player.apply_physics(dt, world);
+        player.body.apply_physics(dt, world);
     }
 
-    fn apply_fly_movement(&self, player: &mut Player, delta_time: f32, local_p: f32) {
+    fn apply_fly_movement(&self, player: &mut LocalPlayer, delta_time: f32, local_p: f32) {
         let multiplier = if self.is_pressed(KeyCode::ShiftLeft) { SPRINT_MULTIPLIER } else { 1.0 };
         let speed = MOVE_SPEED * multiplier * delta_time;
-        let front = player.forward;
+        let front = player.body.forward;
         let right = player.right_vector();
         let up = right.cross(front).normalize_or(player.up());
 
@@ -108,15 +108,15 @@ impl InputState {
 
         if move_dir != glam::Vec3::ZERO {
             let scale = metric::metric_speed_scale(move_dir, local_p);
-            player.fly_move(move_dir.normalize() * speed * scale);
+            player.body.fly_move(move_dir.normalize() * speed * scale);
         }
     }
 
     /// Walk movement: WASD moves in the local tangent plane (ignoring pitch).
-    fn apply_walk_movement(&self, player: &mut Player, world: &World, delta_time: f32, local_p: f32) {
+    fn apply_walk_movement(&self, player: &mut LocalPlayer, world: &WorldReplica, delta_time: f32, local_p: f32) {
         let speed = MOVE_SPEED * delta_time;
         let up = player.up();
-        let front = player.forward;
+        let front = player.body.forward;
         let forward = (front - up * front.dot(up)).normalize_or(player.right_vector());
         let right = forward.cross(up).normalize_or(player.right_vector());
 
@@ -136,7 +136,7 @@ impl InputState {
 
         if move_dir != glam::Vec3::ZERO {
             let scale = metric::metric_speed_scale(move_dir, local_p);
-            player.walk(move_dir.normalize() * speed * scale, world);
+            player.body.walk(move_dir.normalize() * speed * scale, world);
         }
     }
 }
