@@ -1,10 +1,6 @@
 use super::super::render::graphical_core::ui_pipeline::UiPipeline;
 use super::game_state::GameState;
-
-use crate::{
-    shared::{world_meta::list_worlds, WORLD_DISTANCE},
-    utils::rand_seed,
-};
+use crate::server::storage::world_meta::list_worlds;
 
 const BUTTON_W: f32 = 300.0;
 const BUTTON_H: f32 = 40.0;
@@ -40,7 +36,10 @@ pub fn draw_menu(ui: &mut UiPipeline, state: &mut GameState, screen_width: f32, 
             if button_clicked(ui, "Singleplayer", cx, screen_height * 0.45, cursor, clicked) {
                 *state = GameState::WorldSelect { worlds: list_worlds() };
             }
-            if button_clicked(ui, "Quit", cx, screen_height * 0.55, cursor, clicked) {
+            if button_clicked(ui, "Multiplayer", cx, screen_height * 0.55, cursor, clicked) {
+                return;
+            }
+            if button_clicked(ui, "Quit", cx, screen_height * 0.65, cursor, clicked) {
                 std::process::exit(0);
             }
         }
@@ -60,10 +59,9 @@ pub fn draw_menu(ui: &mut UiPipeline, state: &mut GameState, screen_width: f32, 
                 y += BUTTON_H + 10.0;
             }
             if let Some(i) = selected {
-                let (dir, meta) = &worlds[i];
+                let (dir, _) = &worlds[i];
                 *state = GameState::EnteringWorld {
                     world_dir: dir.clone(),
-                    seed: meta.seed,
                 };
                 return;
             }
@@ -108,21 +106,6 @@ pub fn draw_menu(ui: &mut UiPipeline, state: &mut GameState, screen_width: f32, 
 
             if !name.is_empty() {
                 if button_clicked(ui, "Create & Play", cx, y, cursor, clicked) {
-                    let seed: u32 = seed_text.parse().unwrap_or_else(|_| rand_seed());
-                    match create_world(name, seed) {
-                        Ok(dir) => {
-                            let stream_rd = WORLD_DISTANCE;
-                            let side = (2 * stream_rd + 1) as usize;
-                            let total = side * side;
-                            *state = GameState::PreGenerating {
-                                world_dir: dir,
-                                seed,
-                                loaded: 0,
-                                total,
-                            };
-                        }
-                        Err(e) => eprintln!("Failed to create world: {e}"),
-                    }
                     return;
                 }
                 y += BUTTON_H + 10.0;

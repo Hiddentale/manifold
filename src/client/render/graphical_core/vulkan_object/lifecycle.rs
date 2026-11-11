@@ -121,7 +121,6 @@ fn destroy_block_table(device: &Device, data: &mut VulkanApplicationData) {
 
 impl VulkanApplication {
     /// Creates the core Vulkan renderer without loading a world.
-    /// Call `enter_world()` to load a world before rendering game frames.
     ///
     /// # Safety
     /// Calls unsafe Vulkan APIs. The caller must call [`Self::destroy_vulkan_application`]

@@ -1,5 +1,5 @@
 mod frame;
-mod lifecycle;
+pub mod lifecycle;
 mod presentation;
 
 use super::{

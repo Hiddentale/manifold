@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use crate::server::storage::world_meta::WorldMeta;
 
 pub enum GameState {
     TitleScreen,
@@ -11,13 +12,11 @@ pub enum GameState {
     },
     PreGenerating {
         world_dir: PathBuf,
-        seed: u32,
         loaded: usize,
         total: usize,
     },
     EnteringWorld {
         world_dir: PathBuf,
-        seed: u32,
     },
     Playing,
 }
