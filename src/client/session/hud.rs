@@ -1,5 +1,8 @@
 use crate::client::{
-    render::graphical_core::{camera::EyeMatrices, vulkan_object::VulkanApplication},
+    render::graphical_core::{
+        camera::{Camera, EyeMatrices},
+        vulkan_object::VulkanApplication,
+    },
     session::client_session::Session,
 };
 use winit::window::Window;
@@ -35,6 +38,7 @@ impl FpsCounter {
 
 pub fn draw_ui(
     session: &mut Session,
+    camera: &Camera,
     fps_counter: &FpsCounter,
     application: &mut VulkanApplication,
     user_window: &Window,
@@ -47,5 +51,5 @@ pub fn draw_ui(
         session.local_player.body.x, session.local_player.body.y, session.local_player.body.z
     );
     application.ui.draw_text(&pos_text, 4.0, 22.0, 14.0, [1.0, 1.0, 1.0, 0.8]);
-    unsafe { application.render_frame(&user_window, &session.camera, &eyes) }
+    unsafe { application.render_frame(&user_window, &camera, &eyes) }
 }

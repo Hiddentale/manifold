@@ -54,7 +54,7 @@ pub fn handle_device_event(event: DeviceEvent, event_info: &mut EventInfo) {
 fn handle_keyboard_input(key_event: KeyEvent, current_window: &EventLoopWindowTarget<()>, event_info: &mut EventInfo) {
     if let PhysicalKey::Code(key_code) = key_event.physical_key {
         match &mut event_info.game_state {
-            GameState::Playing(_) => match key_event.state {
+            GameState::Playing(session) => match key_event.state {
                 ElementState::Pressed => {
                     if key_code == KeyCode::Escape {
                         unsafe { event_info.application.destroy_gpu_resources() };
@@ -63,10 +63,10 @@ fn handle_keyboard_input(key_event: KeyEvent, current_window: &EventLoopWindowTa
                         return;
                     }
                     if key_code == KeyCode::KeyF && !key_event.repeat {
-                        event_info.player.body.toggle_fly_mode();
+                        session.local_player.body.toggle_fly_mode();
                     }
                     if key_code == KeyCode::Space {
-                        event_info.player.body.jump();
+                        session.local_player.body.jump();
                     }
                     event_info.input.key_pressed(key_code);
                 }
@@ -126,6 +126,7 @@ fn handle_redraw_request(event_info: &mut EventInfo) -> anyhow::Result<()> {
     let result = match &mut event_info.game_state {
         Playing(session) => draw_ui(
             session,
+            &event_info.camera,
             &event_info.fps_counter,
             &mut event_info.application,
             &event_info.user_window,

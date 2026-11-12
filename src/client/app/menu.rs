@@ -56,7 +56,7 @@ pub fn draw_menu(ui: &mut UiPipeline, state: &mut MenuState, screen_width: f32, 
         MenuState::Multiplayer {} => {}
         MenuState::CreateWorld { name, seed_text } => {}
         MenuState::PreGenerating {} => {}
-        MenuState::EnteringWorld {} => return StartWorld,
+        MenuState::EnteringWorld {} => {} // Return StartWorld here, so menustate can be deleted
         // GameState::WorldSelect { worlds } => {
         //     let title = "Select World";
         //     let text_width = UiPipeline::text_width(title, TEXT_SIZE * 1.5);
