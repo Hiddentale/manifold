@@ -11,7 +11,6 @@ const BUTTON_HOVER: [f32; 4] = [0.3, 0.3, 0.5, 0.9];
 const TEXT_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 const DIM_TEXT: [f32; 4] = [0.7, 0.7, 0.7, 1.0];
 
-#[derive(PartialEq)]
 pub enum MenuState {
     TitleScreen,
     Singleplayer,

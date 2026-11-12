@@ -15,6 +15,9 @@ use winit::{
     window::CursorGrabMode,
 };
 
+const FLY_MODE_KEY: KeyCode = KeyCode::KeyF;
+const JUMP_KEY: KeyCode = KeyCode::Space;
+
 pub fn handle_window_event(event: WindowEvent, event_info: &mut EventInfo, current_window: &EventLoopWindowTarget<()>) -> anyhow::Result<()> {
     match event {
         WindowEvent::CloseRequested => {
@@ -22,7 +25,7 @@ pub fn handle_window_event(event: WindowEvent, event_info: &mut EventInfo, curre
         }
         WindowEvent::Resized(size) => resize_or_minimize_screen(size, event_info),
         WindowEvent::CursorMoved { position, .. } => adjust_cursor_position(position, event_info),
-        WindowEvent::KeyboardInput { event: key_event, .. } => handle_keyboard_input(key_event, current_window, event_info),
+        WindowEvent::KeyboardInput { event: key_event, .. } => handle_keyboard_input(key_event, event_info, current_window),
         WindowEvent::MouseInput {
             state: ElementState::Pressed,
             button,
@@ -51,7 +54,7 @@ pub fn handle_device_event(event: DeviceEvent, event_info: &mut EventInfo) {
     }
 }
 
-fn handle_keyboard_input(key_event: KeyEvent, current_window: &EventLoopWindowTarget<()>, event_info: &mut EventInfo) {
+fn handle_keyboard_input(key_event: KeyEvent, event_info: &mut EventInfo, current_window: &EventLoopWindowTarget<()>) {
     if let PhysicalKey::Code(key_code) = key_event.physical_key {
         match &mut event_info.game_state {
             GameState::Playing(session) => match key_event.state {
@@ -62,17 +65,29 @@ fn handle_keyboard_input(key_event: KeyEvent, current_window: &EventLoopWindowTa
                         release_cursor(&event_info.user_window);
                         return;
                     }
-                    if key_code == KeyCode::KeyF && !key_event.repeat {
+                    if key_code == FLY_MODE_KEY && !key_event.repeat {
                         session.local_player.body.toggle_fly_mode();
                     }
-                    if key_code == KeyCode::Space {
+                    if key_code == JUMP_KEY {
                         session.local_player.body.jump();
                     }
                     event_info.input.key_pressed(key_code);
                 }
                 ElementState::Released => event_info.input.key_released(key_code),
             },
-            _ => {}
+            GameState::Menu(menu_state) => match key_event.state {
+                ElementState::Pressed => {
+                    if key_code == KeyCode::Escape && matches!(menu_state, MenuState::TitleScreen) {
+                        exit_program(&mut event_info.destroy_application, current_window, &mut event_info.application);
+                        return;
+                    }
+                    if key_code == KeyCode::Escape && (matches!(menu_state, MenuState::Singleplayer) || matches!(menu_state, MenuState::Multiplayer))
+                    {
+                        *menu_state = MenuState::TitleScreen;
+                    }
+                }
+                ElementState::Released => event_info.input.key_released(key_code),
+            },
         }
     }
 }

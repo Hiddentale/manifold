@@ -108,7 +108,6 @@ impl Body {
     }
 }
 
-#[derive(PartialEq)]
 pub struct Orientation {
     pub yaw: f32,
     pub pitch: f32,
