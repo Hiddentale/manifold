@@ -1,21 +1,26 @@
-use super::world_replica::WorldReplica;
 use super::player::LocalPlayer;
-use crate::shared::protocol::{Event, Intent};
+use super::world_replica::WorldReplica;
+use crate::client::render::graphical_core::camera::Camera;
+use crate::shared::protocol::{ClientIntent, ServerEvent};
 
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 
 pub struct Session {
-    local_player: LocalPlayer,
-    world_replica: WorldReplica,
-    simulation_handle: (Sender<Intent>, Receiver<Event>)
+    pub local_player: LocalPlayer,
+    pub camera: Camera,
+    pub physics_accumulator: f32,
+    pub world_replica: WorldReplica,
+    pub networking_handle: (Sender<ClientIntent>, Receiver<ServerEvent>),
 }
 
 impl Session {
-    pub fn new(&self) -> Self {
+    pub fn new(sender: Sender<ClientIntent>, receiver: Receiver<ServerEvent>) -> Self {
         Session {
             local_player: LocalPlayer::new(),
+            camera: Camera::default(),
+            physics_accumulator: 0.0,
             world_replica: WorldReplica::new(),
-            simulation_handle: channel::<Intent>(),
+            networking_handle: (sender, receiver),
         }
     }
 }

@@ -2,7 +2,8 @@ mod client;
 mod server;
 mod shared;
 mod utils;
-use crate::client::app::event_handling::{handle_device_event, handle_wait_event, handle_window_event, initialize_event_info, release_cursor};
+use crate::client::app::event_handling::{handle_wait_event, initialize_event_info};
+use crate::client::app::window::{handle_device_event, handle_window_event, release_cursor};
 use anyhow::Result;
 use winit::{event::Event, event_loop::EventLoop};
 

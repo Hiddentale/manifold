@@ -7,6 +7,7 @@ const JUMP_VELOCITY: Vec3 = Vec3::new(0.0, 8.0, 0.0);
 /// Keeps pitch just short of ±90° so forward/right never go parallel to WORLD_UP.
 const PITCH_LIMIT: f32 = 1.5533; // ~89 degrees
 
+#[derive(PartialEq)]
 pub struct Body {
     pub x: f32,
     pub y: f32,
@@ -107,6 +108,7 @@ impl Body {
     }
 }
 
+#[derive(PartialEq)]
 pub struct Orientation {
     pub yaw: f32,
     pub pitch: f32,

@@ -1,5 +1,5 @@
 use super::chunk_changes::ClientChunkChanges;
-use crate::shared::protocol::Event;
+use crate::shared::protocol::ServerEvent;
 use crate::shared::{
     chunk::{Chunk, ChunkLookup},
     grid::ChunkPos,
@@ -16,13 +16,13 @@ impl WorldReplica {
     pub fn new() -> WorldReplica {
         Self { chunks: HashMap::new() }
     }
-    pub fn apply(&mut self, event: Event, chunk_changes: &mut ClientChunkChanges) {
+    pub fn apply(&mut self, event: ServerEvent, chunk_changes: &mut ClientChunkChanges) {
         match event {
-            Event::ChunkLoaded { position, chunk } => {
+            ServerEvent::ChunkLoaded { position, chunk } => {
                 self.chunks.insert(position, chunk);
                 chunk_changes.loaded_chunks.push(position);
             }
-            Event::ChunkUnloaded { position } => {
+            ServerEvent::ChunkUnloaded { position } => {
                 self.chunks.remove(&position);
                 chunk_changes.unloaded_chunks.push(position);
             }
