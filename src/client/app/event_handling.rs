@@ -4,6 +4,8 @@ use crate::{
     client::render::graphical_core::{camera::Camera, input::InputState, vulkan_object::VulkanApplication},
     client::session::hud::FpsCounter,
 };
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use std::time::Instant;
 use winit::{
     event_loop::EventLoopWindowTarget,
@@ -50,7 +52,9 @@ impl ClientApplication {
     }
 }
 
-pub fn handle_wait_event(event_info: &mut ClientApplication) {
+/// The function that moves the simulation forward each frame.
+/// Updates state and then asks for a frame to be drawn.
+pub fn update_game_frame(event_info: &mut ClientApplication) {
     const MAX_PHYSICS_CATCHUP: f32 = 0.25;
     const PHYSICS_TICK: f32 = 1.0 / 60.0;
     let now = Instant::now();

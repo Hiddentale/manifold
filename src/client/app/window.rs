@@ -7,6 +7,8 @@ use crate::client::{
     render::graphical_core::{camera::EyeMatrices, vulkan_object::VulkanApplication},
     session::hud::draw_ui,
 };
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{DeviceEvent, ElementState, KeyEvent, MouseButton, WindowEvent},
@@ -18,7 +20,7 @@ use winit::{
 const FLY_MODE_KEY: KeyCode = KeyCode::KeyF;
 const JUMP_KEY: KeyCode = KeyCode::Space;
 
-pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplication, current_window: &EventLoopWindowTarget<()>) -> anyhow::Result<()> {
+pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplication, current_window: &EventLoopWindowTarget<()>) {
     match event {
         WindowEvent::CloseRequested => {
             exit_program(&mut event_info.destroy_application, current_window, &mut event_info.application);
@@ -33,7 +35,7 @@ pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplicatio
         } => handle_mouse_input(button, event_info),
         WindowEvent::RedrawRequested => {
             if event_info.destroy_application || event_info.minimized {
-                return Ok(());
+                return;
             }
             let result = handle_redraw_request(event_info);
             if let Err(e) = result {
@@ -43,7 +45,6 @@ pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplicatio
         }
         _ => {}
     }
-    Ok(())
 }
 
 pub fn handle_device_event(event: DeviceEvent, event_info: &mut ClientApplication) {
