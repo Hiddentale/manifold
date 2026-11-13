@@ -1,4 +1,4 @@
-use super::{event_handling::EventInfo, game_state::GameState};
+use super::{event_handling::ClientApplication, game_state::GameState};
 use crate::client::{
     app::{
         game_state::GameState::{Menu, Playing},
@@ -18,7 +18,7 @@ use winit::{
 const FLY_MODE_KEY: KeyCode = KeyCode::KeyF;
 const JUMP_KEY: KeyCode = KeyCode::Space;
 
-pub fn handle_window_event(event: WindowEvent, event_info: &mut EventInfo, current_window: &EventLoopWindowTarget<()>) -> anyhow::Result<()> {
+pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplication, current_window: &EventLoopWindowTarget<()>) -> anyhow::Result<()> {
     match event {
         WindowEvent::CloseRequested => {
             exit_program(&mut event_info.destroy_application, current_window, &mut event_info.application);
@@ -46,7 +46,7 @@ pub fn handle_window_event(event: WindowEvent, event_info: &mut EventInfo, curre
     Ok(())
 }
 
-pub fn handle_device_event(event: DeviceEvent, event_info: &mut EventInfo) {
+pub fn handle_device_event(event: DeviceEvent, event_info: &mut ClientApplication) {
     if let DeviceEvent::MouseMotion { delta: (dx, dy) } = event {
         if matches!(event_info.game_state, GameState::Playing(_)) {
             event_info.input.accumulate_mouse_delta(dx, dy);
@@ -54,7 +54,7 @@ pub fn handle_device_event(event: DeviceEvent, event_info: &mut EventInfo) {
     }
 }
 
-fn handle_keyboard_input(key_event: KeyEvent, event_info: &mut EventInfo, current_window: &EventLoopWindowTarget<()>) {
+fn handle_keyboard_input(key_event: KeyEvent, event_info: &mut ClientApplication, current_window: &EventLoopWindowTarget<()>) {
     if let PhysicalKey::Code(key_code) = key_event.physical_key {
         match &mut event_info.game_state {
             GameState::Playing(session) => match key_event.state {
@@ -110,7 +110,7 @@ fn exit_program(destroy_application: &mut bool, current_window: &EventLoopWindow
     unsafe { application.destroy_vulkan_application() }
 }
 
-fn resize_or_minimize_screen(size: PhysicalSize<u32>, event_info: &mut EventInfo) {
+fn resize_or_minimize_screen(size: PhysicalSize<u32>, event_info: &mut ClientApplication) {
     if size.width == 0 || size.height == 0 {
         event_info.minimized = true;
     } else {
@@ -119,11 +119,11 @@ fn resize_or_minimize_screen(size: PhysicalSize<u32>, event_info: &mut EventInfo
     }
 }
 
-fn adjust_cursor_position(position: PhysicalPosition<f64>, event_info: &mut EventInfo) {
+fn adjust_cursor_position(position: PhysicalPosition<f64>, event_info: &mut ClientApplication) {
     event_info.cursor_position = [position.x as f32, position.y as f32];
 }
 
-fn handle_mouse_input(button: MouseButton, event_info: &mut EventInfo) {
+fn handle_mouse_input(button: MouseButton, event_info: &mut ClientApplication) {
     match event_info.game_state {
         Menu(_) => {
             if button == MouseButton::Left {
@@ -136,7 +136,7 @@ fn handle_mouse_input(button: MouseButton, event_info: &mut EventInfo) {
     }
 }
 
-fn handle_redraw_request(event_info: &mut EventInfo) -> anyhow::Result<()> {
+fn handle_redraw_request(event_info: &mut ClientApplication) -> anyhow::Result<()> {
     let eyes = EyeMatrices::from_camera(&event_info.camera, event_info.application.swapchain_extent());
     let result = match &mut event_info.game_state {
         Playing(session) => draw_ui(

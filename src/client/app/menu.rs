@@ -45,7 +45,7 @@ pub fn draw_menu(ui: &mut UiPipeline, state: &mut MenuState, screen_width: f32, 
                 *state = MenuState::Singleplayer;
             }
             if button_clicked(ui, "Multiplayer", cx, screen_height * 0.55, cursor, clicked) {
-                return;
+                *state = MenuState::Multiplayer;
             }
             if button_clicked(ui, "Quit", cx, screen_height * 0.65, cursor, clicked) {
                 std::process::exit(0);

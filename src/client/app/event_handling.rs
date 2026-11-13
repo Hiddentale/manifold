@@ -6,12 +6,11 @@ use crate::{
 };
 use std::time::Instant;
 use winit::{
-    dpi::LogicalSize,
     event_loop::EventLoopWindowTarget,
     window::{Window, WindowBuilder},
 };
 
-pub struct EventInfo {
+pub struct ClientApplication {
     pub game_state: GameState,
     pub input: InputState,
     pub fps_counter: FpsCounter,
@@ -25,30 +24,33 @@ pub struct EventInfo {
     pub destroy_application: bool,
 }
 
-pub fn initialize_event_info(event_handler: &EventLoopWindowTarget<()>) -> anyhow::Result<EventInfo> {
-    let user_window = WindowBuilder::new()
-        .with_title("Manifold")
-        .with_inner_size(LogicalSize::new(1024, 768))
-        .build(event_handler)?;
+impl ClientApplication {
+    pub fn new(event_handler: &EventLoopWindowTarget<()>, game_title: &str) -> anyhow::Result<ClientApplication> {
+        let user_window = WindowBuilder::new()
+            .with_title(game_title)
+            .with_inner_size(event_handler.primary_monitor().unwrap().size())
+            .build(event_handler)?;
 
-    let application = unsafe { VulkanApplication::create_vulkan_application(&user_window) }?;
+        let vulkan_application = unsafe { VulkanApplication::create_vulkan_application(&user_window) }?;
 
-    let event_info = EventInfo {
-        game_state: GameState::Menu(MenuState::TitleScreen),
-        input: InputState::new(),
-        fps_counter: FpsCounter::new(),
-        camera: Camera::default(),
-        last_frame: Instant::now(),
-        application,
-        user_window,
-        cursor_position: [0.0; 2],
-        minimized: false,
-        menu_click: false,
-        destroy_application: false,
-    };
-    Ok(event_info)
+        let event_info = ClientApplication {
+            game_state: GameState::Menu(MenuState::TitleScreen),
+            input: InputState::new(),
+            fps_counter: FpsCounter::new(),
+            camera: Camera::default(),
+            last_frame: Instant::now(),
+            application: vulkan_application,
+            user_window,
+            cursor_position: [0.0; 2],
+            minimized: false,
+            menu_click: false,
+            destroy_application: false,
+        };
+        Ok(event_info)
+    }
 }
-pub fn handle_wait_event(event_info: &mut EventInfo) {
+
+pub fn handle_wait_event(event_info: &mut ClientApplication) {
     const MAX_PHYSICS_CATCHUP: f32 = 0.25;
     const PHYSICS_TICK: f32 = 1.0 / 60.0;
     let now = Instant::now();
