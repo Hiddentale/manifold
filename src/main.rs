@@ -5,9 +5,8 @@ mod utils;
 use crate::client::app::event_handling::{update_game_frame, ClientApplication};
 use crate::client::app::window::{handle_device_event, handle_window_event, release_cursor};
 use crate::server::simulation::start_server;
+use crate::shared::protocol::ClientIntent;
 use anyhow::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use winit::{event::Event, event_loop::EventLoop};
 
 const APPLICATION_NAME: &str = "Manifold";
@@ -17,14 +16,15 @@ fn main() -> Result<()> {
     let event_handler = EventLoop::new()?;
     let mut client_application = ClientApplication::new(&event_handler, APPLICATION_NAME)?;
     release_cursor(&client_application.user_window);
-    let shutdown_thread = Arc::new(AtomicBool::new(false));
-    let shutdown = Arc::clone(&shutdown_thread);
-    let thread_handle = start_server(shutdown);
+    let server_connection = start_server(12345);
 
     event_handler
         .run(move |event, current_window| match event {
             Event::WindowEvent { event, .. } => {
-                handle_window_event(event, &mut client_application, current_window);
+                let shutdown_application = handle_window_event(event, &mut client_application, current_window);
+                if shutdown_application {
+                    server_connection.intent_sender.send(ClientIntent::Shutdown).unwrap();
+                }
             }
             Event::DeviceEvent { event, .. } => {
                 handle_device_event(event, &mut client_application);
@@ -35,8 +35,7 @@ fn main() -> Result<()> {
             _ => (),
         })
         .expect("Main function crashed!");
-    shutdown_thread.store(true, Ordering::Relaxed);
-    thread_handle.join().unwrap();
+    server_connection.join_handle.join().unwrap();
     Ok(())
 }
 

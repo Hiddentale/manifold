@@ -12,8 +12,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub struct World {
-    chunks: HashMap<ChunkPos, Arc<Chunk>>,
-    generator: ChunkGenerator,
+    pub chunks: HashMap<ChunkPos, Arc<Chunk>>,
+    pub generator: ChunkGenerator,
     pub metric: MetricField,
 }
 
