@@ -1,42 +1,41 @@
-mod event_handling;
-mod game_state;
-mod graphical_core;
-mod hud;
-mod menu;
-mod storage;
+mod client;
+mod server;
+mod shared;
 mod utils;
-mod voxel;
+use crate::client::app::event_handling::{update_game_frame, ClientApplication};
+use crate::client::app::window::{handle_device_event, handle_window_event, release_cursor};
+use crate::server::simulation::start_server;
+use crate::shared::protocol::ClientIntent;
 use anyhow::Result;
-use event_handling::{handle_device_event, handle_wait_event, handle_window_event, initialize_event_info, release_cursor};
-use vulkan_rust::{vk, Version};
 use winit::{event::Event, event_loop::EventLoop};
 
-const PORTABILITY_MACOS_VERSION: Version = Version::new(1, 3, 216);
-const VALIDATION_ENABLED: bool = cfg!(debug_assertions);
-
-const VALIDATION_LAYER: &std::ffi::CStr = c"VK_LAYER_KHRONOS_validation";
-const DEVICE_EXTENSIONS: &[&std::ffi::CStr] = &[vk::extension_names::KHR_SWAPCHAIN_EXTENSION_NAME];
+const APPLICATION_NAME: &str = "Manifold";
 
 fn main() -> Result<()> {
     initialize_error_handler();
     let event_handler = EventLoop::new()?;
-    let mut event_info = initialize_event_info(&event_handler)?;
-    release_cursor(&event_info.user_window);
+    let mut client_application = ClientApplication::new(&event_handler, APPLICATION_NAME)?;
+    release_cursor(&client_application.user_window);
+    let server_connection = start_server(12345);
 
     event_handler
         .run(move |event, current_window| match event {
             Event::WindowEvent { event, .. } => {
-                let _ = handle_window_event(event, &mut event_info, current_window);
+                let shutdown_application = handle_window_event(event, &mut client_application, current_window);
+                if shutdown_application {
+                    server_connection.intent_sender.send(ClientIntent::Shutdown).unwrap();
+                }
             }
             Event::DeviceEvent { event, .. } => {
-                handle_device_event(event, &mut event_info);
+                handle_device_event(event, &mut client_application);
             }
             Event::AboutToWait => {
-                handle_wait_event(&mut event_info);
+                update_game_frame(&mut client_application);
             }
             _ => (),
         })
         .expect("Main function crashed!");
+    server_connection.join_handle.join().unwrap();
     Ok(())
 }
 

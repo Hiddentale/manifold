@@ -1,6 +1,6 @@
 # Manifold
 
-A from-scratch voxel engine built with **Rust** and **Vulkan**, mainly built for VR.
+A from-scratch voxel engine built with **Rust** and **Vulkan**.
 
 ![Terrain preview](docs/images/preview.png)
 ![Terrain preview](docs/images/preview2.png)
@@ -18,14 +18,17 @@ A from-scratch voxel engine built with **Rust** and **Vulkan**, mainly built for
 
 ```
 src/
-  graphical_core/   Vulkan renderer, pipelines, GPU pools, command recording
-  voxel/            Chunks, terrain, biomes
-  storage/          Region files, world metadata, disk caching
-  vr/               OpenXR session, stereo swapchains, multiview
-  shaders/          GLSL mesh/task/vertex/fragment/compute shaders (SPIR-V)
-```
+  client/
+    app/              Client side application
+    render/
+      graphical_core/ Vulkan renderer, pipelines, GPU pools, command recording
+      shaders/        GLSL mesh/task/vertex/fragment/compute shaders (SPIR-V)
+    session/  
+  server/             Server architecture
+    storage/          Region files, world metadata, disk caching
+  shared/             Player collision, server protocol, blocks, chunks
 
-Voxel data and rendering are decoupled. Terrain generation runs on background thread pools (crossbeam channels). Three independent GPU pools manage near-field mesh chunks, SVDAG ray march data, and heightmap tile geometry.
+```
 
 ## Build
 
