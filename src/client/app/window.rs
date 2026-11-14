@@ -18,15 +18,17 @@ use winit::{
 const FLY_MODE_KEY: KeyCode = KeyCode::KeyF;
 const JUMP_KEY: KeyCode = KeyCode::Space;
 
-pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplication, current_window: &EventLoopWindowTarget<()>) -> bool {
+pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplication, current_window: &EventLoopWindowTarget<()>) {
     match event {
         WindowEvent::CloseRequested => {
             exit_program(&mut event_info.destroy_application, current_window, &mut event_info.application);
-            return true;
+            return;
         }
         WindowEvent::Resized(size) => resize_or_minimize_screen(size, event_info),
         WindowEvent::CursorMoved { position, .. } => adjust_cursor_position(position, event_info),
-        WindowEvent::KeyboardInput { event: key_event, .. } => handle_keyboard_input(key_event, event_info, current_window),
+        WindowEvent::KeyboardInput { event: key_event, .. } => {
+            handle_keyboard_input(key_event, event_info, current_window);
+        }
         WindowEvent::MouseInput {
             state: ElementState::Pressed,
             button,
@@ -34,7 +36,7 @@ pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplicatio
         } => handle_mouse_input(button, event_info),
         WindowEvent::RedrawRequested => {
             if event_info.destroy_application || event_info.minimized {
-                return false;
+                return;
             }
             let result = handle_redraw_request(event_info);
             if let Err(e) = result {
@@ -44,7 +46,6 @@ pub fn handle_window_event(event: WindowEvent, event_info: &mut ClientApplicatio
         }
         _ => {}
     }
-    false
 }
 
 pub fn handle_device_event(event: DeviceEvent, event_info: &mut ClientApplication) {

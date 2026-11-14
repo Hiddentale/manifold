@@ -12,9 +12,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub struct World {
-    pub chunks: HashMap<ChunkPos, Arc<Chunk>>,
-    pub generator: ChunkGenerator,
-    pub metric: MetricField,
+    chunks: HashMap<ChunkPos, Arc<Chunk>>,
+    generator: ChunkGenerator,
+    metric: MetricField,
 }
 
 pub struct ServerChunkChanges {

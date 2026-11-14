@@ -1,5 +1,6 @@
 pub mod biome;
 pub mod chunk_generator;
+pub mod hosting;
 pub mod player;
 pub mod simulation;
 pub mod storage;
