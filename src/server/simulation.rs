@@ -1,5 +1,5 @@
 use super::world::World;
-use crate::shared::protocol::{ClientIntent, ServerEvent};
+use crate::shared::protocol::{ClientIntent, JoinReply, JoinRequest, ServerConnection, ServerEvent};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread::{Builder, JoinHandle};
 use std::time::{Duration, Instant};
@@ -15,52 +15,84 @@ struct Simulation {
 }
 
 pub struct ClientConnection {
-    pub player_id: u32,
     pub event_sender: Sender<ServerEvent>,
     pub intent_receiver: Receiver<ClientIntent>,
 }
 
-pub struct ServerConnection {
+pub struct ServerHandle {
     pub join_handle: JoinHandle<()>,
-    pub intent_sender: Sender<ClientIntent>,
-    pub event_receiver: Receiver<ServerEvent>,
+    pub join_requester: Sender<JoinRequest>,
 }
 
-pub fn start_server(seed: u32) -> anyhow::Result<ServerConnection> {
+enum TickOutcome {
+    Continue,
+    Shutdown,
+}
+
+pub fn start_server(seed: u32) -> anyhow::Result<ServerHandle> {
     let mut simulation = Simulation {
         current_world: World::new(seed),
         players: Vec::new(),
         tick_count: 0,
     };
-    let (intent_sender, intent_receiver) = channel::<ClientIntent>();
-    let (event_sender, event_receiver) = channel::<ServerEvent>();
+
+    let (join_requester, join_receiver) = channel::<JoinRequest>();
     let thread_builder = Builder::new().name("server".into());
-    let join_handle = thread_builder.spawn(move || loop_server(intent_receiver, event_sender, &mut simulation))?;
-    Ok(ServerConnection {
-        join_handle,
-        intent_sender,
-        event_receiver,
-    })
+    let join_handle = thread_builder.spawn(move || loop_server(join_receiver, &mut simulation))?;
+
+    Ok(ServerHandle { join_handle, join_requester })
 }
 
 pub fn join_server() {}
 
-fn loop_server(intents: Receiver<ClientIntent>, event_sender: Sender<ServerEvent>, simulation: &mut Simulation) {
+fn loop_server(join_receiver: Receiver<JoinRequest>, simulation: &mut Simulation) {
     let mut next_tick = Instant::now() + TICK_DURATION;
+
     'server: loop {
+        process_joins(&join_receiver, &mut simulation.players);
         loop {
             let time_left = next_tick.saturating_duration_since(Instant::now());
-            match intents.recv_timeout(time_left) {
-                Ok(ClientIntent::MovePlayer { position, velocity }) => break,
-                Ok(ClientIntent::BreakBlock { position }) => break,
-                Ok(ClientIntent::PlaceBlock { position }) => break,
-                Ok(ClientIntent::Shutdown) => break 'server,
-                Err(RecvTimeoutError::Timeout) => break,
-                Err(RecvTimeoutError::Disconnected) => break 'server,
-                _ => (),
+            if !simulation.players.is_empty() {
+                for player in &simulation.players {
+                    process_intents(time_left, player);
+                }
             }
+            // let tick_outcome = process_intents(time_left, intents);
+            // if matches!(tick_outcome, TickOutcome::Shutdown) {
+            //     break 'server;
+            // } else if matches!(tick_outcome, TickOutcome::Continue) {
+            //     break;
+            // }
         }
         next_tick += TICK_DURATION;
         simulation.tick_count += 1;
+    }
+}
+
+fn process_joins(join_receiver: &Receiver<JoinRequest>, client_connections: &mut Vec<ClientConnection>) {
+    for join_request in join_receiver.try_iter() {
+        let (intent_sender, intent_receiver) = channel::<ClientIntent>();
+        let (event_sender, event_receiver) = channel::<ServerEvent>();
+        let server_connection = ServerConnection {
+            intent_sender,
+            event_receiver,
+        };
+        join_request.temporary_sender.send(JoinReply::Accepted { server_connection }).unwrap();
+        let client_connection = ClientConnection {
+            intent_receiver,
+            event_sender,
+        };
+        client_connections.push(client_connection);
+    }
+}
+
+fn process_intents(time_left: Duration, intents: &ClientConnection) -> TickOutcome {
+    match intents.recv_timeout(time_left) {
+        Ok(ClientIntent::MovePlayer { position, velocity }) => TickOutcome::Continue,
+        Ok(ClientIntent::BreakBlock { position }) => TickOutcome::Continue,
+        Ok(ClientIntent::PlaceBlock { position }) => TickOutcome::Continue,
+        Ok(ClientIntent::Shutdown) => TickOutcome::Shutdown,
+        Err(RecvTimeoutError::Timeout) => TickOutcome::Continue,
+        Err(RecvTimeoutError::Disconnected) => TickOutcome::Shutdown,
     }
 }
