@@ -1,6 +1,6 @@
 use super::world::World;
 use crate::shared::protocol::{ClientIntent, JoinReply, JoinRequest, ServerConnection, ServerEvent};
-use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread::{Builder, JoinHandle};
 use std::time::{Duration, Instant};
 
@@ -24,9 +24,11 @@ pub struct ServerHandle {
     pub join_requester: Sender<JoinRequest>,
 }
 
+#[must_use]
 enum TickOutcome {
     Continue,
     Shutdown,
+    Disconnected,
 }
 
 pub fn start_server(seed: u32) -> anyhow::Result<ServerHandle> {
@@ -43,30 +45,34 @@ pub fn start_server(seed: u32) -> anyhow::Result<ServerHandle> {
     Ok(ServerHandle { join_handle, join_requester })
 }
 
-pub fn join_server() {}
-
 fn loop_server(join_receiver: Receiver<JoinRequest>, simulation: &mut Simulation) {
     let mut next_tick = Instant::now() + TICK_DURATION;
-
-    'server: loop {
+    loop {
         process_joins(&join_receiver, &mut simulation.players);
-        loop {
-            let time_left = next_tick.saturating_duration_since(Instant::now());
-            if !simulation.players.is_empty() {
-                for player in &simulation.players {
-                    process_intents(time_left, player);
-                }
+        let mut disconnected = Vec::new();
+        for (index, player) in simulation.players.iter().enumerate() {
+            match process_intents(player) {
+                TickOutcome::Continue => (),
+                TickOutcome::Disconnected => disconnected.push(index),
+                TickOutcome::Shutdown => break,
             }
-            // let tick_outcome = process_intents(time_left, intents);
-            // if matches!(tick_outcome, TickOutcome::Shutdown) {
-            //     break 'server;
-            // } else if matches!(tick_outcome, TickOutcome::Continue) {
-            //     break;
-            // }
         }
-        next_tick += TICK_DURATION;
-        simulation.tick_count += 1;
+        disconnect_players(disconnected, simulation);
+        sleep_loop(&mut next_tick, simulation);
     }
+}
+
+fn disconnect_players(disconnected: Vec<usize>, simulation: &mut Simulation) {
+    for index in disconnected.into_iter().rev() {
+        simulation.players.remove(index);
+    }
+}
+
+fn sleep_loop(next_tick: &mut Instant, simulation: &mut Simulation) {
+    let time_left = next_tick.saturating_duration_since(Instant::now());
+    std::thread::sleep(time_left);
+    *next_tick += TICK_DURATION;
+    simulation.tick_count += 1;
 }
 
 fn process_joins(join_receiver: &Receiver<JoinRequest>, client_connections: &mut Vec<ClientConnection>) {
@@ -84,15 +90,23 @@ fn process_joins(join_receiver: &Receiver<JoinRequest>, client_connections: &mut
         };
         client_connections.push(client_connection);
     }
+    // Someone could overload the server by sending millions of join requests.
 }
 
-fn process_intents(time_left: Duration, intents: &ClientConnection) -> TickOutcome {
-    match intents.recv_timeout(time_left) {
-        Ok(ClientIntent::MovePlayer { position, velocity }) => TickOutcome::Continue,
-        Ok(ClientIntent::BreakBlock { position }) => TickOutcome::Continue,
-        Ok(ClientIntent::PlaceBlock { position }) => TickOutcome::Continue,
-        Ok(ClientIntent::Shutdown) => TickOutcome::Shutdown,
-        Err(RecvTimeoutError::Timeout) => TickOutcome::Continue,
-        Err(RecvTimeoutError::Disconnected) => TickOutcome::Shutdown,
+const MAX_INTENTS_PER_TICK: u32 = 100;
+fn process_intents(connection: &ClientConnection) -> TickOutcome {
+    for _ in 0..MAX_INTENTS_PER_TICK {
+        match connection.intent_receiver.try_recv() {
+            Ok(ClientIntent::MovePlayer { position, velocity }) => { // Send ServerEvent to Client that player move is accepted
+            }
+            Ok(ClientIntent::BreakBlock { position }) => { // Send ServerEvent to Client that player block break is accepted
+            }
+            Ok(ClientIntent::PlaceBlock { position }) => { // Send ServerEvent to Client that player block place is accepted
+            }
+            Ok(ClientIntent::Shutdown) => return TickOutcome::Shutdown,
+            Err(TryRecvError::Empty) => break,
+            Err(TryRecvError::Disconnected) => return TickOutcome::Disconnected,
+        }
     }
+    TickOutcome::Continue
 }
