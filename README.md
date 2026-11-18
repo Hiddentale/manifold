@@ -17,16 +17,21 @@ A from-scratch voxel engine built with **Rust** and **Vulkan**.
 ## Architecture
 
 ```
-src/
+crates/
+  game/                 Game launcher
+    src/
   client/
-    app/              Client side application
-    render/
-      graphical_core/ Vulkan renderer, pipelines, GPU pools, command recording
-      shaders/        GLSL mesh/task/vertex/fragment/compute shaders (SPIR-V)
-    session/  
+    src/
+      app/              Client side application
+      render/
+        graphical_core/ Vulkan renderer, pipelines, GPU pools, command recording
+        shaders/        GLSL mesh/task/vertex/fragment/compute shaders (SPIR-V)
+      session/  
   server/             Server architecture
-    storage/          Region files, world metadata, disk caching
+    src/
+      storage/          Region files, world metadata, disk caching
   shared/             Player collision, server protocol, blocks, chunks
+    src/
 
 ```
 

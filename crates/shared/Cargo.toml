@@ -1,0 +1,11 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+authors = [""]
+license = ""
+description = ""
+repository = ""
+
+[dependencies]
+glam = {workspace = true}

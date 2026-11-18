@@ -1,4 +1,5 @@
 /target
+crates/target
 .claude
 docs/ideas
 docs/roadmap.md
@@ -9,6 +10,5 @@ debug.log
 docs/bug1_bisection.md
 .manifold-intel.db
 world_generation/
-src/js
 data
 docs/.DS_Store

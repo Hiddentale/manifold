@@ -94,7 +94,7 @@ description or a question for me.
 
 ### Philosophy
 
-- **Tests are first-class code.** They live in `tests/`, are subject to the same quality standards as production code, and are committed with the feature they test.
+- **Tests are first-class code.** Integration tests live in `tests/`, Unit tests in their respective file. They are subject to the same quality standards as production code, and are committed with the feature they test.
 - **Testing shows presence of defects, not absence.** A passing test suite is not a proof of correctness. Design tests to find bugs, not to confirm the code runs.
 - **Exhaustive testing is impossible.** Apply risk-based prioritisation: identify the modules most likely to fail and concentrate effort there. 80% of defects cluster in 20% of the code.
 - **Test early, test often.** Write tests before or alongside the code they cover, not after.
