@@ -1,12 +1,23 @@
 use super::world::World;
 use crate::shared::protocol::{ClientIntent, ServerEvent};
-use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{channel, Receiver, RecvTimeoutError, Sender};
 use std::thread::{Builder, JoinHandle};
+use std::time::{Duration, Instant};
+
+const NANOSECONDS_PER_SECOND: u64 = 64;
+const AMOUNT_OF_NANOSECONDS: u64 = 1_000_000_000;
+const TICK_DURATION: Duration = Duration::from_nanos(AMOUNT_OF_NANOSECONDS / NANOSECONDS_PER_SECOND);
 
 struct Simulation {
     current_world: World,
-    players: Vec<u32>,
+    players: Vec<ClientConnection>,
     tick_count: u64,
+}
+
+pub struct ClientConnection {
+    pub player_id: u32,
+    pub event_sender: Sender<ServerEvent>,
+    pub intent_receiver: Receiver<ClientIntent>,
 }
 
 pub struct ServerConnection {
@@ -32,18 +43,24 @@ pub fn start_server(seed: u32) -> anyhow::Result<ServerConnection> {
     })
 }
 
+pub fn join_server() {}
+
 fn loop_server(intents: Receiver<ClientIntent>, event_sender: Sender<ServerEvent>, simulation: &mut Simulation) {
+    let mut next_tick = Instant::now() + TICK_DURATION;
     'server: loop {
         loop {
-            match intents.try_recv() {
+            let time_left = next_tick.saturating_duration_since(Instant::now());
+            match intents.recv_timeout(time_left) {
+                Ok(ClientIntent::MovePlayer { position, velocity }) => break,
+                Ok(ClientIntent::BreakBlock { position }) => break,
+                Ok(ClientIntent::PlaceBlock { position }) => break,
                 Ok(ClientIntent::Shutdown) => break 'server,
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => break 'server,
+                Err(RecvTimeoutError::Timeout) => break,
+                Err(RecvTimeoutError::Disconnected) => break 'server,
                 _ => (),
             }
         }
+        next_tick += TICK_DURATION;
         simulation.tick_count += 1;
-        std::thread::sleep(std::time::Duration::from_millis(100));
     }
-    println!("{:?}", simulation.tick_count)
 }

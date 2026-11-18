@@ -4,8 +4,6 @@ use crate::{
     client::render::graphical_core::{camera::Camera, input::InputState, vulkan_object::VulkanApplication},
     client::session::hud::FpsCounter,
 };
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use std::time::Instant;
 use winit::{
     event_loop::EventLoopWindowTarget,

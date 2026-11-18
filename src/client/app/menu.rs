@@ -159,8 +159,3 @@ pub fn draw_menu(ui: &mut UiPipeline, state: &mut MenuState, screen_width: f32, 
 }
 
 fn draw_singleplayer_menu() {}
-fn initialize_server_handler() -> (Sender<ClientIntent>, Receiver<ClientIntent>, Sender<ServerEvent>, Receiver<ServerEvent>) {
-    let (intent_sender, intent_receiver) = channel::<ClientIntent>();
-    let (event_sender, event_receiver) = channel::<ServerEvent>();
-    (intent_sender, intent_receiver, event_sender, event_receiver)
-}
