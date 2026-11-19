@@ -2,7 +2,6 @@ use anyhow::Result;
 use client::app::event_handling::{update_game_frame, ClientApplication};
 use client::app::window::{handle_device_event, handle_window_event, release_cursor};
 use server::simulation::start_server;
-use shared::protocol::ClientIntent;
 use winit::{event::Event, event_loop::EventLoop};
 
 const APPLICATION_NAME: &str = "Manifold";

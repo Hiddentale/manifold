@@ -83,12 +83,16 @@ fn process_joins(join_receiver: &Receiver<JoinRequest>, client_connections: &mut
             intent_sender,
             event_receiver,
         };
-        join_request.temporary_sender.send(JoinReply::Accepted { server_connection }).unwrap();
-        let client_connection = ClientConnection {
-            intent_receiver,
-            event_sender,
+        match join_request.temporary_sender.send(JoinReply::Accepted { server_connection }) {
+            Ok(_) => {
+                let client_connection = ClientConnection {
+                    intent_receiver,
+                    event_sender,
+                };
+                client_connections.push(client_connection);
+            }
+            Err(_) => (),
         };
-        client_connections.push(client_connection);
     }
     // Someone could overload the server by sending millions of join requests.
 }
