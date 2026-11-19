@@ -1,0 +1,16 @@
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2021"
+authors = [""]
+license = ""
+description = ""
+repository = ""
+
+[dependencies]
+shared = { path = "../shared" }
+client = { path = "../client" }
+server = { path = "../server" }
+anyhow = {workspace = true}
+winit = {workspace = true}
+pretty_env_logger = "0.5.0"

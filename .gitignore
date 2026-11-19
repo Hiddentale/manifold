@@ -1,10 +1,8 @@
 /target
-ideas.txt
+crates/target
 .claude
-CLAUDE.md
 docs/ideas
 docs/roadmap.md
-temp
 world_cache/
 worlds
 debug_log.txt
@@ -12,6 +10,5 @@ debug.log
 docs/bug1_bisection.md
 .manifold-intel.db
 world_generation/
-src/js
 data
 docs/.DS_Store

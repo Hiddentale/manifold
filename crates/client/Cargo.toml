@@ -1,0 +1,24 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+authors = [""]
+license = ""
+description = ""
+repository = ""
+
+[dependencies]
+shared = { path = "../shared" }
+anyhow = {workspace = true}
+glam = {workspace = true}
+log = {workspace = true}
+winit = {workspace = true}
+thiserror = "1"
+vulkan-rust = "0.10.2"
+image = "0.25.6"
+
+[dev-dependencies]
+memoffset = "0.9"
+
+[build-dependencies]
+anyhow = "1.0"

@@ -1,0 +1,16 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+authors = [""]
+license = ""
+description = ""
+repository = ""
+
+[dependencies]
+shared = { path = "../shared" }
+anyhow = {workspace = true}
+log = {workspace = true}
+glam = {workspace = true}
+noise = "0.9"
+crossbeam-channel = "0.5"
